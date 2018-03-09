@@ -1,0 +1,15 @@
+.target
+build
+.metadata
+.targetsOptions
+.classpath
+.project
+.settings
+.cache/
+.checkstyle
+*.iml
+*.ipr
+*.iws
+*.orig
+*.swp
+*~
