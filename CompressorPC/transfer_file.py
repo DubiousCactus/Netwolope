@@ -1,96 +1,15 @@
+#!/usr/bin/python3
+
 import binascii
 import serial
 import os
 
-from itertools import izip_longest
 from subprocess import call
 from optparse import OptionParser
 
 
-# Constant for the packet
-DATA_SIZE = 20
-PACKET_IDX_TYPE = 8
-PACKET_IDX_LENGTH = 9
-PACKET_TYPE_DATA = 0
-PACKET_TYPE_END = 1
-PACKET_TEMPLATE = [
-  0x00,       #
-  0xFF, 0xFF, # destination address
-  0x00, 0x00, # source address
-  0x16,       # message length, 0x16 => 22
-  0x22,       # group id
-  0x06,       # handler id
-  0x00,       # packet type (0=data, 1=end of message)
-  0x00,       # actual data length
-  0x00,       # data[0]
-  0x00,       # data[1]
-  0x00,       # data[2]
-  0x00,       # data[3]
-  0x00,       # data[4]
-  0x00,       # data[5]
-  0x00,       # data[6]
-  0x00,       # data[7]
-  0x00,       # data[8]
-  0x00,       # data[9]
-  0x00,       # data[10]
-  0x00,       # data[11]
-  0x00,       # data[12]
-  0x00,       # data[13]
-  0x00,       # data[14]
-  0x00,       # data[15]
-  0x00,       # data[16]
-  0x00,       # data[17]
-  0x00,       # data[18]
-  0x00,       # data[19]
-]
-
-def grouper(iterable, n, fillvalue=None):
-      args = [iter(iterable)] * n
-      return izip_longest(*args, fillvalue=fillvalue)
-
-
-def to_hex(byteArray):
-    return ' '.join(map(lambda d: '%0.2X' % d, byteArray))
-
-
-def create_end_of_stream_packet():
-  packet = PACKET_TEMPLATE[:]
-  packet[PACKET_IDX_TYPE] = PACKET_TYPE_END
-  packet[PACKET_IDX_LENGTH] = 0
-  return to_hex(packet)
-
-
-def convert_to_packets(fileName):
-  f = open('data.bin', 'rb')
-  image_data = bytearray(f.read())
-  f.close()
-
-  # Group byte arrays in groups
-  for group in grouper(image_data, DATA_SIZE):
-    # Remove all None values at the end of the image data
-    data_items = [x for x in group if x is not None]
-
-    # Copy the packet template
-    packet = PACKET_TEMPLATE[:]
-
-    # Assign packet type
-    packet[PACKET_IDX_TYPE] = PACKET_TYPE_DATA
-
-    # Assign the actual length of the data
-    packet[PACKET_IDX_LENGTH] = len(data_items)
-
-    # Data values follow after the data length
-    data_idx = PACKET_IDX_LENGTH + 1
-
-    # Set the data bytes
-    for item in data_items:
-      packet[data_idx] = item
-      data_idx += 1
-
-    yield to_hex(packet)
-
-
 def init_serial(serialPort):
+  print("[*] Openning serial port {}".format(serialPort))
   s = serial.Serial()
   s.port = serialPort
   s.baudrate = 115200
@@ -106,24 +25,38 @@ def init_serial(serialPort):
     print("error  opening serial port: " + str(e))
     exit(1)
 
+  return s
 
 def transfer_in_chunks(fileName):
   return
 
 
-def transfer_at_once(fileName):
+def transfer_at_once(fileName, serialConnection):
   fileSize = os.stat(fileName).st_size
   packets = list(convert_to_packets(fileName))
-  print('File "%s" (%s bytes) is converted to %s packets' % (fileName, fileSize, len(packets)))
 
-  for packet in packets:
-    print('Executing "%s %s"' % (CMD, packet))
-    call([CMD, packet])
+  serialConnection.write(to_hex(packet))
+  time.sleep(0.5)
 
-  # Append an end-of-stream packet
-  EOSPacket = create_end_of_stream_packet()
-  print('Executing "%s %s"' % (CMD, EOSPacket))
-  call([CMD, EOSPacket])
+
+def open_file(fileName):
+  if not os.path.isfile(options.fileName):
+    print("[!] File not found !")
+    exit(1)
+
+  pgmFile = open(fileName, 'rb') # Open in binary mode
+  assert pgmFile.readline() == 'P5\n' # Check header
+  (width, height) = [int(i) for i in pgmf.readline().split()]
+  depth = int(pgmf.readline())
+  assert depth <= 255 # Only 8-bit images
+
+  image = []
+  for y in range(height):
+    row = []
+    for x in range(width):
+      row.append(ord(pgmFile.read(1))) # Read one byte and append it to the row
+    image.append(row)
+  return image
 
 
 
@@ -137,11 +70,10 @@ parser.add_option("-p", "--port", dest="serialPort", help="The SERIAL_PORT to wr
 if not options.fileName:
   parser.print_help()
   parser.error('Please specify a file to transfer')
-elif not os.path.isfile(options.fileName):
-  parser.error('File "%s" not found' + options.fileName)
 elif not options.serialPort:
   parser.print_help()
   parser.error('Please specify a serial port to write to')
 else:
-  init_serial(options.serialPort)
-  transfer(options.fileName)
+  img = open_file(options.fileName)
+  s = init_serial(options.serialPort)
+  transfer_at_once(img, s)
