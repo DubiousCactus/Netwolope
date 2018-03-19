@@ -1,4 +1,5 @@
 import binascii
+import serial
 import os
 
 from itertools import izip_longest
@@ -48,8 +49,8 @@ def grouper(iterable, n, fillvalue=None):
       return izip_longest(*args, fillvalue=fillvalue)
 
 
-def to_hex(byte_array):
-    return ' '.join(map(lambda d: '%0.2X' % d, byte_array))
+def to_hex(byteArray):
+    return ' '.join(map(lambda d: '%0.2X' % d, byteArray))
 
 
 def create_end_of_stream_packet():
@@ -59,7 +60,7 @@ def create_end_of_stream_packet():
   return to_hex(packet)
 
 
-def convert_to_packets(file_name):
+def convert_to_packets(fileName):
   f = open('data.bin', 'rb')
   image_data = bytearray(f.read())
   f.close()
@@ -89,31 +90,58 @@ def convert_to_packets(file_name):
     yield to_hex(packet)
 
 
-def transfer(file_name):
-  file_size = os.stat(file_name).st_size
-  packets = list(convert_to_packets(file_name))
-  print('File "%s" (%s bytes) is converted to %s packets' % (file_name, file_size, len(packets)))
+def init_serial(serialPort):
+  s = serial.Serial()
+  s.port = serialPort
+  s.baudrate = 115200
+  s.bytesize = serial.EIGHTBITS
+  s.parity = serial.PARITYNONE
+  s.stopbits = serial.STOPBITS_ONE
+  s.timeout = 0 # Non blocking
+  # s.xonxoff = False #disable software flow control
 
-  CMD = 'java net.tinyos.tools.Send'
+  try:
+    s.open()
+  except Exception, e:
+    print("error  opening serial port: " + str(e))
+    exit(1)
+
+
+def transfer_in_chunks(fileName):
+  return
+
+
+def transfer_at_once(fileName):
+  fileSize = os.stat(fileName).st_size
+  packets = list(convert_to_packets(fileName))
+  print('File "%s" (%s bytes) is converted to %s packets' % (fileName, fileSize, len(packets)))
+
   for packet in packets:
     print('Executing "%s %s"' % (CMD, packet))
     call([CMD, packet])
 
   # Append an end-of-stream packet
-  end_packet = create_end_of_stream_packet()
-  print('Executing "%s %s"' % (CMD, end_packet))
-  call([CMD, end_packet])
+  EOSPacket = create_end_of_stream_packet()
+  print('Executing "%s %s"' % (CMD, EOSPacket))
+  call([CMD, EOSPacket])
 
 
+
+# EXECUTION STARTS HERE
 parser = OptionParser()
-parser.add_option("-f", "--file", dest="file_name", help="The FILE to transfer to the mote.", metavar="FILE")
+parser.add_option("-f", "--file", dest="fileName", help="The FILE to transfer to the mote.", metavar="FILE")
+parser.add_option("-p", "--port", dest="serialPort", help="The SERIAL_PORT to write to.", metavar="SERIAL_PORT")
 (options, args) = parser.parse_args()
 
-file_name = options.file_name
-if not file_name:
+
+if not options.fileName:
   parser.print_help()
   parser.error('Please specify a file to transfer')
-elif not os.path.isfile(file_name):
-  parser.error('File "%s" not found' % file_name)
+elif not os.path.isfile(options.fileName):
+  parser.error('File "%s" not found' + options.fileName)
+elif not options.serialPort:
+  parser.print_help()
+  parser.error('Please specify a serial port to write to')
 else:
-  transfer(file_name)
+  init_serial(options.serialPort)
+  transfer(options.fileName)
