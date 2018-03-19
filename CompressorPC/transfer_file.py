@@ -21,8 +21,8 @@ def init_serial(serialPort):
 
   try:
     s.open()
-  except Exception, e:
-    print("error  opening serial port: " + str(e))
+  except Exception:
+    print("error opening serial port")
     exit(1)
 
   return s
@@ -45,18 +45,31 @@ def open_file(fileName):
     exit(1)
 
   pgmFile = open(fileName, 'rb') # Open in binary mode
-  assert pgmFile.readline() == 'P5\n' # Check header
-  (width, height) = [int(i) for i in pgmf.readline().split()]
-  depth = int(pgmf.readline())
-  assert depth <= 255 # Only 8-bit images
+  try:
+    if pgmFile.readline() == 'P5\n': # Check header
+      (width, height) = [int(i) for i in pgmf.readline().split()]
+      depth = int(pgmf.readline())
+      
+      try:
+        if depth <= 255: # Only 8-bit images
 
-  image = []
-  for y in range(height):
-    row = []
-    for x in range(width):
-      row.append(ord(pgmFile.read(1))) # Read one byte and append it to the row
-    image.append(row)
-  return image
+          image = []
+          for y in range(height):
+            row = []
+            for x in range(width):
+              row.append(ord(pgmFile.read(1))) # Read one byte and append it to the row
+            image.append(row)
+          return image
+        else:
+          raise(AssertionError)
+      except AssertionError:
+        print("[!] Not an 8-bit image !")
+        exit(1)
+    else:
+      raise(AssertionError)
+  except AssertionError:
+    print("[!] Not a PGM file !")
+    exit(1)
 
 
 
