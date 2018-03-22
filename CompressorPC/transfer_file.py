@@ -2,9 +2,11 @@
 
 import binascii
 import serial
+import time
 import os
 
 from subprocess import call
+from progressbar import ProgressBar, Percentage, Bar
 from optparse import OptionParser
 
 
@@ -33,9 +35,13 @@ def transfer_in_chunks(fileName):
 
 def transfer_at_once(image, serialConnection):
   print("[*] Transfering file to the mote...")
-  for row in image:
+  pbar = ProgressBar(widgets=[Percentage(), Bar(marker='=',left='[',right=']')], maxval=len(image)).start()
+  for i, row in enumerate(image):
     written = serialConnection.write(row)
-  
+    pbar.update(i + 1)
+    time.sleep(0.2)
+
+  pbar.finish()  
   print("[*] Done !")
 
 def open_file(fileName):
