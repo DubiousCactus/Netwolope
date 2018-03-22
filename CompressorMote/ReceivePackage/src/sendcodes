@@ -1,0 +1,25 @@
+#    first attempt
+the following is working! wierd.
+make telosb install
+java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 00 14 11 23 45 11 23 45 51 12 34 55 11 23 45 51 12 34 55 11 23 45
+And running the following after that works.
+./SendImageToMote
+
+#    second attempt
+But the following is not working!
+make telosb install
+./SendImageToMote
+
+which runs the first line>
+java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 00 14 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+
+#   third attempt
+make telosb install
+java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 00 14 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+this doesnt work.
+
+#   fourth attempt
+make telosb install
+java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 00 14 11 23 45 11 23 45 51 12 34 55 11 23 45 51 12 34 55 11 23 45
+
+this works fine...
