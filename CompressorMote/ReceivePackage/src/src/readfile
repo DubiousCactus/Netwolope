@@ -1,0 +1,49 @@
+#!/bin/bash
+# script for java net.tinyos.tools.Send
+
+file='config.txt'
+exec 4<$file
+
+while read -u4 t ; do
+    #echo "The string:"
+    #echo $t
+    echo "elements"
+    echo ${#t}
+    #echo "start by code"
+    #SET TYPE AND DATALEN (DATALEN SHOULD BE MORE DYNAMIC)
+    type="00"
+    datalen="20"
+    for ((number=1;number < datalen*2;number=number+2))
+    {
+	#2 bit at a time (1 byte)
+	a=${t:number-1:2}
+	data=$data$" "$a
+	#echo "${data}"
+    }
+    done
+
+    msglen=$((datalen+2))
+    #convert msglen to hexidecimal
+    if(($msglen < 16));  then
+      echo $msglen
+      msglen="$(echo "obase=16; $msglen"| bc)"
+      msglen=$"0"$msglen
+      #echo $msglen
+    else
+      msglen="$(echo "obase=16; $msglen"| bc)"
+      #echo $msglen
+    fi
+
+    #convert datalen to hexidecimal
+    if(($datalen < 16));  then
+      datalen="$(echo "obase=16; $datalen"| bc)"
+      datalen=$"0"$datalen
+    else
+      datalen="$(echo "obase=16; $datalen"| bc)"
+    fi
+    
+    sendcmd=$"java net.tinyos.tools.Send"$" 00 FF FF 00 00 "$msglen$" 22 06"$" "$type$" "$datalen$""$data
+    echo "${sendcmd}"
+    ${sendcmd}
+
+exit 0
