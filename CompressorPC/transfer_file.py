@@ -46,9 +46,10 @@ def open_file(fileName):
 
   pgmFile = open(fileName, 'rb') # Open in binary mode
   try:
-    if pgmFile.readline() == 'P5\n': # Check header
-      (width, height) = [int(i) for i in pgmf.readline().split()]
-      depth = int(pgmf.readline())
+    if pgmFile.readline().decode('ascii') == 'P5\n': # Check header
+      pgmFile.readline() # Dump the next line, it's a comment
+      (width, height) = [int(i) for i in pgmFile.readline().split()]
+      depth = int(pgmFile.readline())
       
       try:
         if depth <= 255: # Only 8-bit images
