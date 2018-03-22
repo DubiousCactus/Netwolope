@@ -9,6 +9,7 @@ from subprocess import call
 from progressbar import ProgressBar, Percentage, Bar
 from optparse import OptionParser
 
+MSG_READY_TO_RECEIVE = "READY"
 
 def init_serial(serialPort):
   print("[*] Openning serial port {}".format(serialPort))
@@ -18,7 +19,7 @@ def init_serial(serialPort):
   s.bytesize = serial.EIGHTBITS
   s.parity = serial.PARITY_NONE
   s.stopbits = serial.STOPBITS_ONE
-  s.timeout = 0 # Non blocking
+  s.timeout = None # Blocking ! (yes we want that)
   s.xonxoff = False #disable software flow control
 
   try:
@@ -29,20 +30,24 @@ def init_serial(serialPort):
 
   return s
 
-def transfer_in_chunks(fileName):
-  return
-
-
-def transfer_at_once(image, serialConnection):
+def transfer(image, serialConnection, inChunks):
   print("[*] Transfering file to the mote...")
   pbar = ProgressBar(widgets=[Percentage(), Bar(marker='=',left='[',right=']')], maxval=len(image)).start()
   for i, row in enumerate(image):
     written = serialConnection.write(row)
     pbar.update(i + 1)
     time.sleep(0.2)
+    
+    if inChunks:
+      # Now wait until the mote is ready to receive again: when it sends something like OK
+      if serialConnection.read(len(MSG_READY_TO_RECEIVE)) != MSG_READY_TO_RECEIVE: # Blocking
+        print("[!] Mote didn't send <{}> ! Aborting...".format(MSG_READY_TO_RECEIVE))
+        pbar.finish()
+        serialConnection.close()
+        exit(1)
 
   pbar.finish()  
-  print("[*] Done !")
+
 
 def open_file(fileName):
   if not os.path.isfile(options.fileName):
@@ -85,6 +90,7 @@ def open_file(fileName):
 parser = OptionParser()
 parser.add_option("-f", "--file", dest="fileName", help="The FILE to transfer to the mote.", metavar="FILE")
 parser.add_option("-p", "--port", dest="serialPort", help="The SERIAL_PORT to write to.", metavar="SERIAL_PORT")
+parser.add_option("-c", "--chunks", action="store_true", dest="chunks", default=False, help="Send the image in chunks")
 (options, args) = parser.parse_args()
 
 
@@ -97,4 +103,4 @@ elif not options.serialPort:
 else:
   img = open_file(options.fileName)
   s = init_serial(options.serialPort)
-  transfer_at_once(img, s)
+  transfer(img, s, options.chunks)
