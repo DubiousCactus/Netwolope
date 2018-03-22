@@ -14,7 +14,7 @@ def init_serial(serialPort):
   s.port = serialPort
   s.baudrate = 115200
   s.bytesize = serial.EIGHTBITS
-  s.parity = serial.PARITYNONE
+  s.parity = serial.PARITY_NONE
   s.stopbits = serial.STOPBITS_ONE
   s.timeout = 0 # Non blocking
   # s.xonxoff = False #disable software flow control
