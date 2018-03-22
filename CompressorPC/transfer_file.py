@@ -14,8 +14,8 @@ def init_serial(serialPort):
   s.port = serialPort
   s.baudrate = 115200
   s.bytesize = serial.EIGHTBITS
-  s.parity = serial.PARITY_NONE
-  s.stopbits = serial.STOPBITS_ONE
+  # s.parity = serial.PARITY_NONE
+  # s.stopbits = serial.STOPBITS_ONE
   s.timeout = 0 # Non blocking
   # s.xonxoff = False #disable software flow control
 
@@ -31,12 +31,9 @@ def transfer_in_chunks(fileName):
   return
 
 
-def transfer_at_once(fileName, serialConnection):
-  fileSize = os.stat(fileName).st_size
-  packets = list(convert_to_packets(fileName))
-
-  serialConnection.write(to_hex(packet))
-  time.sleep(0.5)
+def transfer_at_once(image, serialConnection):
+  written = serialConnection.write(image)
+  print("[*] Sent {}/{} bytes".format(written, image.count()))
 
 
 def open_file(fileName):
