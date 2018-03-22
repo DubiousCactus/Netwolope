@@ -9,7 +9,10 @@ from subprocess import call
 from progressbar import ProgressBar, Percentage, Bar
 from optparse import OptionParser
 
+MSG_RECEIVE_AT_ONCE = "RCV AT ONCE"
+MSG_RECEIVE_IN_CHUNKS = "RCV IN CHUNKS"
 MSG_READY_TO_RECEIVE = "READY"
+MSG_RECEIVE_OK = "RCV OK"
 
 def init_serial(serialPort):
   print("[*] Openning serial port {}".format(serialPort))
@@ -19,7 +22,7 @@ def init_serial(serialPort):
   s.bytesize = serial.EIGHTBITS
   s.parity = serial.PARITY_NONE
   s.stopbits = serial.STOPBITS_ONE
-  s.timeout = None # Blocking ! (yes we want that)
+  s.timeout = 10 # 10 seconds timeout (is it enough for the mote to compress and send over radio ? lol)
   s.xonxoff = False #disable software flow control
 
   try:
@@ -32,6 +35,12 @@ def init_serial(serialPort):
 
 def transfer(image, serialConnection, inChunks):
   print("[*] Transfering file to the mote...")
+  if inChunks:
+    serialConnection.write(MSG_RECEIVE_IN_CHUNKS.encode('utf-8'))
+  else:
+    serialConnection.write(MSG_RECEIVE_AT_ONCE.encode('utf-8'))
+  
+  time.sleep(0.5)
   pbar = ProgressBar(widgets=[Percentage(), Bar(marker='=',left='[',right=']')], maxval=len(image)).start()
   for i, row in enumerate(image):
     written = serialConnection.write(row)
@@ -46,7 +55,14 @@ def transfer(image, serialConnection, inChunks):
         serialConnection.close()
         exit(1)
 
-  pbar.finish()  
+  pbar.finish()
+  
+  serialConnection.timeout = 2
+  if serialConnection.read(len(MSG_RECEIVE_OK)) != MSG_RECEIVE_OK:
+    print("[!] Mote didn't send <{}> ! Sending probably failed...".format(MSG_RECEIVE_OK))
+
+  serialConnection.close()
+  exit(1)
 
 
 def open_file(fileName):
