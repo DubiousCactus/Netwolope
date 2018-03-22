@@ -14,10 +14,10 @@ def init_serial(serialPort):
   s.port = serialPort
   s.baudrate = 115200
   s.bytesize = serial.EIGHTBITS
-  # s.parity = serial.PARITY_NONE
-  # s.stopbits = serial.STOPBITS_ONE
+  s.parity = serial.PARITY_NONE
+  s.stopbits = serial.STOPBITS_ONE
   s.timeout = 0 # Non blocking
-  # s.xonxoff = False #disable software flow control
+  s.xonxoff = False #disable software flow control
 
   try:
     s.open()
@@ -32,15 +32,18 @@ def transfer_in_chunks(fileName):
 
 
 def transfer_at_once(image, serialConnection):
-  written = serialConnection.write(image)
-  print("[*] Sent {}/{} bytes".format(written, image.count()))
-
+  print("[*] Transfering file to the mote...")
+  for row in image:
+    written = serialConnection.write(row)
+  
+  print("[*] Done !")
 
 def open_file(fileName):
   if not os.path.isfile(options.fileName):
     print("[!] File not found !")
     exit(1)
 
+  print("[*] Opening PGM file")
   pgmFile = open(fileName, 'rb') # Open in binary mode
   try:
     if pgmFile.readline().decode('ascii') == 'P5\n': # Check header
@@ -53,10 +56,11 @@ def open_file(fileName):
 
           image = []
           for y in range(height):
-            row = []
+            row = bytearray()
             for x in range(width):
               row.append(ord(pgmFile.read(1))) # Read one byte and append it to the row
             image.append(row)
+            
           return image
         else:
           raise(AssertionError)
