@@ -1,6 +1,5 @@
-#ifndef RECEIVE_PACKAGE_H
-#define RECEIVE_PACKAGE_H
-
+#ifndef FLASH_READ_H
+#define FLASH_READ_H
 
 typedef nx_struct ReceivePackageMsg {
   nx_uint8_t type; //if type is 00 then its data otherwise it is end of message.
@@ -8,4 +7,4 @@ typedef nx_struct ReceivePackageMsg {
   nx_uint8_t data[20];
 } ReceivePackageMsg;
 
-#endif /* RECEIVE_PACKAGE_H */
+#endif /* FLASH_READ_H */

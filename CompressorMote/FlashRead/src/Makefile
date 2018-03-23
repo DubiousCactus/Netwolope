@@ -1,0 +1,2 @@
+COMPONENT=FlashReadC
+include $(MAKERULES)
