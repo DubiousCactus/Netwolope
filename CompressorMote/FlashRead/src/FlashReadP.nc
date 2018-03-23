@@ -30,7 +30,7 @@ implementation{
   uint8_t m_buffer[BUFFER_SIZE];
   
   /**
-   * Read the first 8 bytes of the Flash memory to 
+   * Read the first bytes of size (BUFFER_SIZE) of the Flash memory to 
    * determine previously written data.
    */
   task void initialReadTask();
@@ -67,7 +67,7 @@ implementation{
   event void BlockRead.computeCrcDone(storage_addr_t addr, storage_len_t len, uint16_t crc, error_t error){
     
   }
-  
+
   task void initialReadTask() {
     static int posted;
     posted = call BlockRead.read(0,                 // position in the flash
@@ -77,7 +77,9 @@ implementation{
     if (!posted) post initialReadTask();
   }
    
-
+  /**
+   * Using Timer to send the data from flash every 1sek.
+   */
 	event void SerialControl.startDone(error_t error){
 		call Leds.led1On();
 		call Timer0.startPeriodic( 1000 );		
@@ -90,7 +92,9 @@ implementation{
 	event void UartSend.sendDone[am_id_t id](message_t *msg, error_t error){
 		// TODO Auto-generated method stub
 	}
-
+  /**
+   * Toggle led1 every 1sek.
+   */
 	event void Timer0.fired(){
 		post initialReadTask();
 		call Leds.led1Toggle();
