@@ -26,7 +26,7 @@ implementation{
     STATUS_DATA_SYNCED = 4
   };
   
-  message_t Packet;
+  message_t packet;
   uint8_t m_buffer[BUFFER_SIZE];
   
   /**
@@ -46,12 +46,12 @@ implementation{
     ReceivePackageMsg * btrpkt;
     if (error == SUCCESS) {
         data = (uint8_t*)buf;
-        btrpkt = (ReceivePackageMsg*)(call SerialPacket.getPayload(&Packet, sizeof (ReceivePackageMsg)));
+        btrpkt = (ReceivePackageMsg*)(call SerialPacket.getPayload(&packet, sizeof (ReceivePackageMsg)));
         
-        for(i = 0; i< 20; i++){
+        for(i = 0; i< 100; i++){
 	        btrpkt->data[i]=data[i];    	
         }
-        if(call UartSend.send[0](0, &Packet, 22) == SUCCESS){
+        if(call UartSend.send[0](0, &packet, 22) == SUCCESS){
         	call Leds.led2On();
         }
         else{

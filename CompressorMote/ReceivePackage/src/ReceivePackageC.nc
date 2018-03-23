@@ -64,7 +64,10 @@ implementation {
 	  }else{
 	  	//call Leds.set(7);
 	  }
-	  post beginWriteTask();
+	  if(head == 100){
+	  	post beginWriteTask();
+	  	
+	  }
 
 		return msg;
 		
