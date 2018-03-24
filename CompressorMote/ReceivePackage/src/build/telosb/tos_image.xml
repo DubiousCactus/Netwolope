@@ -1,11 +1,11 @@
 <tos_image>
   <ident>
-    <uidhash>F7B5E2D1L</uidhash>
+    <uidhash>29DE6EA0L</uidhash>
     <hostname>ubuntu</hostname>
     <username>tinyos</username>
     <appname>ReceivePackageA</appname>
     <userhash>29AC8746L</userhash>
-    <timestamp>5AB68913L</timestamp>
+    <timestamp>5AB68AE0L</timestamp>
     <deluge_support>no</deluge_support>
     <platform>telosb</platform>
   </ident>

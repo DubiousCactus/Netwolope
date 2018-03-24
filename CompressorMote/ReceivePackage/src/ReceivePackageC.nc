@@ -53,20 +53,19 @@ implementation {
 	  	// and assigned to a local variable
 	    
 	    uint16_t i;
-		//if(head > (BUFFER_SIZE - btrpkt->datalength+1)){
-			/*
-			 * To save type, datalength, data to the buffer.
-			 */
-			buffer[head] = btrpkt->type;
+		/*
+		 * To save type, datalength, data to the buffer.
+		 */
+		buffer[head] = btrpkt->type;
+		head++;
+		buffer[head] = btrpkt->datalength;
+		head++;
+		for(i = 0; i< btrpkt->datalength; i++ ){
+			buffer[head] = btrpkt->data[i];
 			head++;
-			buffer[head] = btrpkt->datalength;
-			head++;
-			for(i = 0; i< btrpkt->datalength; i++ ){
-				buffer[head] = btrpkt->data[i];
-				head++;
-			}
-			call Leds.led2On();	 
-			packagecount++;   			
+		}
+		call Leds.led2On();	 
+		packagecount++;   			
 
 	  }else{
 	  }

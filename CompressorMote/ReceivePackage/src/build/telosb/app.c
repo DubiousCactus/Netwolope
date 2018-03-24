@@ -4147,7 +4147,7 @@ static inline void ReceivePackageC__SerialControl__startDone(error_t error);
 
 
 static inline message_t *ReceivePackageC__UartReceive__receive(am_id_t id, message_t *msg, void *payload, uint8_t len);
-#line 82
+#line 81
 static inline void ReceivePackageC__BlockWrite__writeDone(storage_addr_t addr, void *buf, storage_len_t len, error_t error);
 
 
@@ -10646,9 +10646,9 @@ inline static error_t ReceivePackageC__BlockWrite__sync(void ){
 #line 103
 }
 #line 103
-# 82 "ReceivePackageC.nc"
+# 81 "ReceivePackageC.nc"
 static inline void ReceivePackageC__BlockWrite__writeDone(storage_addr_t addr, void *buf, storage_len_t len, error_t error)
-#line 82
+#line 81
 {
   if (error == SUCCESS) {
 
@@ -10964,9 +10964,9 @@ inline static void ReceivePackageC__Leds__led1On(void ){
 #line 61
 }
 #line 61
-# 99 "ReceivePackageC.nc"
+# 98 "ReceivePackageC.nc"
 static inline void ReceivePackageC__BlockWrite__syncDone(error_t error)
-#line 99
+#line 98
 {
   if (error == SUCCESS) {
       __nesc_hton_uint16(ReceivePackageC__tail.data, __nesc_ntoh_uint16(ReceivePackageC__updatedTail.data));
@@ -11018,9 +11018,9 @@ inline static error_t ReceivePackageC__initializeFlashTask__postTask(void ){
 #line 56
 }
 #line 56
-# 90 "ReceivePackageC.nc"
+# 89 "ReceivePackageC.nc"
 static inline void ReceivePackageC__BlockWrite__eraseDone(error_t error)
-#line 90
+#line 89
 {
   if (error == SUCCESS) {
       ReceivePackageC__flashReady = TRUE;
@@ -12610,7 +12610,6 @@ static inline message_t *ReceivePackageC__UartReceive__receive(am_id_t id, messa
 
 
 
-
       __nesc_hton_uint8(ReceivePackageC__buffer[__nesc_ntoh_uint16(ReceivePackageC__head.data)].data, __nesc_ntoh_uint8(btrpkt->type.data));
       (__nesc_temp42 = ReceivePackageC__head.data, __nesc_hton_uint16(__nesc_temp42, (__nesc_temp43 = __nesc_ntoh_uint16(__nesc_temp42)) + 1), __nesc_temp43);
       __nesc_hton_uint8(ReceivePackageC__buffer[__nesc_ntoh_uint16(ReceivePackageC__head.data)].data, __nesc_ntoh_uint8(btrpkt->datalength.data));
@@ -13833,9 +13832,9 @@ inline static error_t ReceivePackageC__BlockWrite__erase(void ){
 #line 83
 }
 #line 83
-# 108 "ReceivePackageC.nc"
+# 107 "ReceivePackageC.nc"
 static inline void ReceivePackageC__initializeFlashTask__runTask(void )
-#line 108
+#line 107
 {
 
 
@@ -13870,9 +13869,9 @@ inline static error_t ReceivePackageC__BlockWrite__write(storage_addr_t addr, vo
 #line 58
 }
 #line 58
-# 114 "ReceivePackageC.nc"
+# 113 "ReceivePackageC.nc"
 static inline void ReceivePackageC__beginWriteTask__runTask(void )
-#line 114
+#line 113
 {
   if (__nesc_ntoh_uint16(ReceivePackageC__tail.data) != __nesc_ntoh_uint16(ReceivePackageC__head.data) && ReceivePackageC__flashReady == TRUE) {
       __nesc_hton_uint16(ReceivePackageC__updatedTail.data, __nesc_ntoh_uint16(ReceivePackageC__tail.data) + (__nesc_ntoh_uint16(ReceivePackageC__head.data) - __nesc_ntoh_uint16(ReceivePackageC__tail.data)));
