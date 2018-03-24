@@ -24,13 +24,15 @@ implementation {
 	bool uartBusy, uartFull, flashReady;
 	nx_uint8_t buffer[5000];
 	nx_uint16_t head, tail, updatedTail; 
+	uint16_t packagecount = 0;
    	task void beginWriteTask();
   
     task void initializeFlashTask();
    
 	  
 	event void Boot.booted() {
-		head,tail = 0;
+		head = 0;
+		tail = 0;
 		post initializeFlashTask();
 		//post initialReadTask();
 		call SerialControl.start();
@@ -45,32 +47,36 @@ implementation {
 	}
 
 	event message_t * UartReceive.receive[am_id_t id](message_t *msg, void *payload, uint8_t len){	  
-	  
+	ReceivePackageMsg* btrpkt = (ReceivePackageMsg*)payload;  
 	  if (len == sizeof(ReceivePackageMsg)) {
 	  	// The message payload is cast to a structure pointer of type ReceivePackageMsg* 
 	  	// and assigned to a local variable
-	    ReceivePackageMsg* btrpkt = (ReceivePackageMsg*)payload;
+	    
 	    uint16_t i;
 		//if(head > (BUFFER_SIZE - btrpkt->datalength+1)){
+			/*
+			 * To save type, datalength, data to the buffer.
+			 */
+			buffer[head] = btrpkt->type;
+			head++;
+			buffer[head] = btrpkt->datalength;
+			head++;
 			for(i = 0; i< btrpkt->datalength; i++ ){
 				buffer[head] = btrpkt->data[i];
 				head++;
 			}
-			call Leds.led2On();	    			
-		//}else{
-			//call Leds.set(1);
-		//}
+			call Leds.led2On();	 
+			packagecount++;   			
 
 	  }else{
-	  	//call Leds.set(7);
 	  }
-	  if(head == 100){
-	  	post beginWriteTask();
-	  	
+	  /*
+	   * When last package is send
+	   */
+	  if(btrpkt->type == 01){
+	  	post beginWriteTask();	
 	  }
-
-		return msg;
-		
+		return msg;	
 	}
 
   event void BlockWrite.writeDone(storage_addr_t addr, void *buf, storage_len_t len, error_t error){

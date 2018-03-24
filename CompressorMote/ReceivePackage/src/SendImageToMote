@@ -66,7 +66,7 @@ do
                ((ct++))
             done
             type="01"
-            datalen=$((datalen-$((totalelement%datalen))))
+            datalen=$((totalelement%datalen))
             convert_to_hexidecimal $datalen
             datalen=$value
             sendcmd=$"java net.tinyos.tools.Send"$" 00 FF FF 00 00 "$msglen$" 22 06"$" "$type$" "$datalen$""$data
@@ -82,8 +82,8 @@ echo "number of elements"
 echo "${counter}"
 }
 #the following line I dont know why it doesnt work without
-sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 00 14 11 23 45 11 23 45 51 12 34 55 11 23 45 51 12 34 55 11 23 45"
-echo "${sendcmd}"
-${sendcmd}
+#sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 00 14 11 23 45 11 23 45 51 12 34 55 11 23 45 51 12 34 55 11 23 45"
+#echo "${sendcmd}"
+#${sendcmd}
 
 main
