@@ -1,0 +1,2 @@
+COMPONENT=ReceivePackageAppC
+include $(MAKERULES)

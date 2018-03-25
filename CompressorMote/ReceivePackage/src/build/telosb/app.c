@@ -926,7 +926,7 @@ TMicro;
 typedef nx_struct ReceivePackageMsg {
   nx_uint8_t type;
   nx_uint8_t datalength;
-  nx_uint8_t data[20];
+  nx_uint8_t data[24];
 } __attribute__((packed)) ReceivePackageMsg;
 # 41 "/opt/tinyos-2.1.1/tos/types/Storage.h"
 typedef uint8_t volume_id_t;

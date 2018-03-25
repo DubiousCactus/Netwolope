@@ -1,0 +1,32 @@
+#!/bin/bash
+
+sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 03 14 11 23 45 11 23 45 51 12 34 55 00 01 02 03 04 05 06 07 08 09"
+${sendcmd}
+sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 03 14 11 23 45 11 23 45 51 12 34 55 10 11 12 13 14 15 16 17 18 19"
+${sendcmd}
+sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 03 14 11 23 45 11 23 45 51 12 34 55 20 21 22 23 24 25 26 27 28 29"
+${sendcmd}
+sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 03 14 11 23 45 11 23 45 51 12 34 55 30 31 32 33 34 35 36 37 38 39"
+${sendcmd}
+sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 04 14 11 23 45 11 23 45 51 12 34 55 40 41 42 43 44 45 46 47 48 49"
+${sendcmd}
+sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 05 14 11 23 45 11 23 45 51 12 34 55 00 01 02 03 04 05 06 07 08 09"
+${sendcmd}
+sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 06 14 11 23 45 11 23 45 51 12 34 55 10 11 12 13 14 15 16 17 18 19"
+${sendcmd}
+sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 00 14 11 23 45 11 23 45 51 12 34 55 20 21 22 23 24 25 26 27 28 29"
+${sendcmd}
+sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 00 14 11 23 45 11 23 45 51 12 34 55 30 31 32 33 34 35 36 37 38 39"
+${sendcmd}
+sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 00 14 11 23 45 11 23 45 51 12 34 55 40 41 42 43 44 45 46 47 48 49"
+${sendcmd}
+sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 00 14 11 23 45 11 23 45 51 12 34 55 00 01 02 03 04 05 06 07 08 09"
+${sendcmd}
+sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 00 14 11 23 45 11 23 45 51 12 34 55 10 11 12 13 14 15 16 17 18 19"
+${sendcmd}
+sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 00 14 11 23 45 11 23 45 51 12 34 55 20 21 22 23 24 25 26 27 28 29"
+${sendcmd}
+sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 00 14 11 23 45 11 23 45 51 12 34 55 30 31 32 33 34 35 36 37 38 39"
+${sendcmd}
+sendcmd=$"java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 01 14 11 23 45 11 23 45 51 12 34 55 40 41 42 43 44 45 46 47 48 49"
+${sendcmd}
