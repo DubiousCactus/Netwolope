@@ -2090,6 +2090,8 @@ static bool SchedulerBasicP__Scheduler__runNextTask(void );
 static error_t LedsP__Init__init(void );
 # 61 "/opt/tinyos-2.1.1/tos/interfaces/Leds.nc"
 static void LedsP__Leds__led1On(void );
+#line 45
+static void LedsP__Leds__led0On(void );
 #line 78
 static void LedsP__Leds__led2On(void );
 # 85 "/opt/tinyos-2.1.1/tos/chips/msp430/pins/HplMsp430GeneralIO.nc"
@@ -2159,6 +2161,11 @@ static void /*HplMsp430GeneralIOC.P53*/HplMsp430GeneralIOP__35__IO__selectIOFunc
 static void /*HplMsp430GeneralIOC.P54*/HplMsp430GeneralIOP__36__IO__makeOutput(void );
 #line 34
 static void /*HplMsp430GeneralIOC.P54*/HplMsp430GeneralIOP__36__IO__set(void );
+
+
+
+
+static void /*HplMsp430GeneralIOC.P54*/HplMsp430GeneralIOP__36__IO__clr(void );
 #line 71
 static void /*HplMsp430GeneralIOC.P55*/HplMsp430GeneralIOP__37__IO__makeOutput(void );
 #line 34
@@ -2181,7 +2188,7 @@ static void /*HplMsp430GeneralIOC.P56*/HplMsp430GeneralIOP__38__IO__clr(void );
 static void /*PlatformLedsC.Led0Impl*/Msp430GpioC__0__GeneralIO__makeOutput(void );
 #line 29
 static void /*PlatformLedsC.Led0Impl*/Msp430GpioC__0__GeneralIO__set(void );
-
+static void /*PlatformLedsC.Led0Impl*/Msp430GpioC__0__GeneralIO__clr(void );
 
 
 
@@ -2212,7 +2219,7 @@ message_t *
 
 
 ReceivePackageC__UartReceive__receive(
-# 12 "ReceivePackageC.nc"
+# 20 "ReceivePackageC.nc"
 am_id_t arg_0x4081d2d0, 
 # 60 "/opt/tinyos-2.1.1/tos/interfaces/Receive.nc"
 message_t * msg, 
@@ -2269,7 +2276,7 @@ uint8_t len);
 # 99 "/opt/tinyos-2.1.1/tos/interfaces/AMSend.nc"
 static void /*SerialActiveMessageC.AM*/SerialActiveMessageP__0__AMSend__default__sendDone(
 # 36 "/opt/tinyos-2.1.1/tos/lib/serial/SerialActiveMessageP.nc"
-am_id_t arg_0x4087cce8, 
+am_id_t arg_0x40876320, 
 # 92 "/opt/tinyos-2.1.1/tos/interfaces/AMSend.nc"
 message_t * msg, 
 
@@ -3920,7 +3927,7 @@ static void SchedulerBasicP__TaskBasic__default__runTask(uint8_t id);
 static void LedsP__Led0__makeOutput(void );
 #line 29
 static void LedsP__Led0__set(void );
-
+static void LedsP__Led0__clr(void );
 
 
 
@@ -3939,6 +3946,8 @@ static void LedsP__Led2__set(void );
 static void LedsP__Led2__clr(void );
 # 45 "/opt/tinyos-2.1.1/tos/system/LedsP.nc"
 static inline error_t LedsP__Init__init(void );
+#line 63
+static inline void LedsP__Leds__led0On(void );
 #line 78
 static inline void LedsP__Leds__led1On(void );
 #line 93
@@ -3995,7 +4004,7 @@ static inline void /*HplMsp430GeneralIOC.P52*/HplMsp430GeneralIOP__34__IO__selec
 static inline void /*HplMsp430GeneralIOC.P53*/HplMsp430GeneralIOP__35__IO__selectIOFunc(void );
 #line 45
 static inline void /*HplMsp430GeneralIOC.P54*/HplMsp430GeneralIOP__36__IO__set(void );
-
+static inline void /*HplMsp430GeneralIOC.P54*/HplMsp430GeneralIOP__36__IO__clr(void );
 
 
 
@@ -4024,9 +4033,14 @@ static inline void /*HplMsp430GeneralIOC.P56*/HplMsp430GeneralIOP__38__IO__makeO
 static void /*PlatformLedsC.Led0Impl*/Msp430GpioC__0__HplGeneralIO__makeOutput(void );
 #line 34
 static void /*PlatformLedsC.Led0Impl*/Msp430GpioC__0__HplGeneralIO__set(void );
+
+
+
+
+static void /*PlatformLedsC.Led0Impl*/Msp430GpioC__0__HplGeneralIO__clr(void );
 # 37 "/opt/tinyos-2.1.1/tos/chips/msp430/pins/Msp430GpioC.nc"
 static inline void /*PlatformLedsC.Led0Impl*/Msp430GpioC__0__GeneralIO__set(void );
-
+static inline void /*PlatformLedsC.Led0Impl*/Msp430GpioC__0__GeneralIO__clr(void );
 
 
 
@@ -4089,23 +4103,25 @@ static error_t ReceivePackageC__beginWriteTask__postTask(void );
 static error_t ReceivePackageC__initializeFlashTask__postTask(void );
 # 61 "/opt/tinyos-2.1.1/tos/interfaces/Leds.nc"
 static void ReceivePackageC__Leds__led1On(void );
+#line 45
+static void ReceivePackageC__Leds__led0On(void );
 #line 78
 static void ReceivePackageC__Leds__led2On(void );
-# 28 "ReceivePackageC.nc"
+# 36 "ReceivePackageC.nc"
 enum ReceivePackageC____nesc_unnamed4303 {
-#line 28
+#line 36
   ReceivePackageC__beginWriteTask = 0U
 };
-#line 28
+#line 36
 typedef int ReceivePackageC____nesc_sillytask_beginWriteTask[ReceivePackageC__beginWriteTask];
 
 enum ReceivePackageC____nesc_unnamed4304 {
-#line 30
+#line 38
   ReceivePackageC__initializeFlashTask = 1U
 };
-#line 30
+#line 38
 typedef int ReceivePackageC____nesc_sillytask_initializeFlashTask[ReceivePackageC__initializeFlashTask];
-#line 15
+#line 23
 enum ReceivePackageC____nesc_unnamed4305 {
   ReceivePackageC__BUFFER_SIZE = 5000, 
   ReceivePackageC__INITIAL_BUFFER_SIZE = 8, 
@@ -4116,13 +4132,13 @@ enum ReceivePackageC____nesc_unnamed4305 {
 };
 
 bool ReceivePackageC__uartFull;
-#line 24
+#line 32
 bool ReceivePackageC__flashReady;
 nx_uint8_t ReceivePackageC__buffer[5000];
 nx_uint16_t ReceivePackageC__head;
-#line 26
+#line 34
 nx_uint16_t ReceivePackageC__tail;
-#line 26
+#line 34
 nx_uint16_t ReceivePackageC__updatedTail;
 uint16_t ReceivePackageC__packagecount = 0;
 
@@ -4131,6 +4147,7 @@ uint16_t ReceivePackageC__packagecount = 0;
 
 
 static inline void ReceivePackageC__Boot__booted(void );
+
 
 
 
@@ -4147,7 +4164,7 @@ static inline void ReceivePackageC__SerialControl__startDone(error_t error);
 
 
 static inline message_t *ReceivePackageC__UartReceive__receive(am_id_t id, message_t *msg, void *payload, uint8_t len);
-#line 81
+#line 87
 static inline void ReceivePackageC__BlockWrite__writeDone(storage_addr_t addr, void *buf, storage_len_t len, error_t error);
 
 
@@ -4184,7 +4201,7 @@ static inline void ReceivePackageC__beginWriteTask__runTask(void );
 # 99 "/opt/tinyos-2.1.1/tos/interfaces/AMSend.nc"
 static void /*SerialActiveMessageC.AM*/SerialActiveMessageP__0__AMSend__sendDone(
 # 36 "/opt/tinyos-2.1.1/tos/lib/serial/SerialActiveMessageP.nc"
-am_id_t arg_0x4087cce8, 
+am_id_t arg_0x40876320, 
 # 92 "/opt/tinyos-2.1.1/tos/interfaces/AMSend.nc"
 message_t * msg, 
 
@@ -4203,7 +4220,7 @@ message_t *
 
 /*SerialActiveMessageC.AM*/SerialActiveMessageP__0__Receive__receive(
 # 37 "/opt/tinyos-2.1.1/tos/lib/serial/SerialActiveMessageP.nc"
-am_id_t arg_0x40876708, 
+am_id_t arg_0x40876ce0, 
 # 60 "/opt/tinyos-2.1.1/tos/interfaces/Receive.nc"
 message_t * msg, 
 void * payload, 
@@ -10646,9 +10663,9 @@ inline static error_t ReceivePackageC__BlockWrite__sync(void ){
 #line 103
 }
 #line 103
-# 81 "ReceivePackageC.nc"
+# 87 "ReceivePackageC.nc"
 static inline void ReceivePackageC__BlockWrite__writeDone(storage_addr_t addr, void *buf, storage_len_t len, error_t error)
-#line 81
+#line 87
 {
   if (error == SUCCESS) {
 
@@ -10914,64 +10931,64 @@ static __inline  uint16_t __nesc_hton_uint16(void * target, uint16_t value)
 }
 
 # 46 "/opt/tinyos-2.1.1/tos/chips/msp430/pins/HplMsp430GeneralIOP.nc"
-static inline void /*HplMsp430GeneralIOC.P55*/HplMsp430GeneralIOP__37__IO__clr(void )
+static inline void /*HplMsp430GeneralIOC.P56*/HplMsp430GeneralIOP__38__IO__clr(void )
 #line 46
 {
 #line 46
   { __nesc_atomic_t __nesc_atomic = __nesc_atomic_start();
 #line 46
-    * (volatile uint8_t * )49U &= ~(0x01 << 5);
+    * (volatile uint8_t * )49U &= ~(0x01 << 6);
 #line 46
     __nesc_atomic_end(__nesc_atomic); }
 }
 
 # 39 "/opt/tinyos-2.1.1/tos/chips/msp430/pins/HplMsp430GeneralIO.nc"
-inline static void /*PlatformLedsC.Led1Impl*/Msp430GpioC__1__HplGeneralIO__clr(void ){
+inline static void /*PlatformLedsC.Led2Impl*/Msp430GpioC__2__HplGeneralIO__clr(void ){
 #line 39
-  /*HplMsp430GeneralIOC.P55*/HplMsp430GeneralIOP__37__IO__clr();
+  /*HplMsp430GeneralIOC.P56*/HplMsp430GeneralIOP__38__IO__clr();
 #line 39
 }
 #line 39
 # 38 "/opt/tinyos-2.1.1/tos/chips/msp430/pins/Msp430GpioC.nc"
-static inline void /*PlatformLedsC.Led1Impl*/Msp430GpioC__1__GeneralIO__clr(void )
+static inline void /*PlatformLedsC.Led2Impl*/Msp430GpioC__2__GeneralIO__clr(void )
 #line 38
 {
 #line 38
-  /*PlatformLedsC.Led1Impl*/Msp430GpioC__1__HplGeneralIO__clr();
+  /*PlatformLedsC.Led2Impl*/Msp430GpioC__2__HplGeneralIO__clr();
 }
 
 # 30 "/opt/tinyos-2.1.1/tos/interfaces/GeneralIO.nc"
-inline static void LedsP__Led1__clr(void ){
+inline static void LedsP__Led2__clr(void ){
 #line 30
-  /*PlatformLedsC.Led1Impl*/Msp430GpioC__1__GeneralIO__clr();
+  /*PlatformLedsC.Led2Impl*/Msp430GpioC__2__GeneralIO__clr();
 #line 30
 }
 #line 30
-# 78 "/opt/tinyos-2.1.1/tos/system/LedsP.nc"
-static inline void LedsP__Leds__led1On(void )
-#line 78
+# 93 "/opt/tinyos-2.1.1/tos/system/LedsP.nc"
+static inline void LedsP__Leds__led2On(void )
+#line 93
 {
-  LedsP__Led1__clr();
+  LedsP__Led2__clr();
   ;
-#line 80
+#line 95
   ;
 }
 
-# 61 "/opt/tinyos-2.1.1/tos/interfaces/Leds.nc"
-inline static void ReceivePackageC__Leds__led1On(void ){
-#line 61
-  LedsP__Leds__led1On();
-#line 61
+# 78 "/opt/tinyos-2.1.1/tos/interfaces/Leds.nc"
+inline static void ReceivePackageC__Leds__led2On(void ){
+#line 78
+  LedsP__Leds__led2On();
+#line 78
 }
-#line 61
-# 98 "ReceivePackageC.nc"
+#line 78
+# 104 "ReceivePackageC.nc"
 static inline void ReceivePackageC__BlockWrite__syncDone(error_t error)
-#line 98
+#line 104
 {
   if (error == SUCCESS) {
       __nesc_hton_uint16(ReceivePackageC__tail.data, __nesc_ntoh_uint16(ReceivePackageC__updatedTail.data));
       if (__nesc_ntoh_uint16(ReceivePackageC__tail.data) == __nesc_ntoh_uint16(ReceivePackageC__head.data)) {
-          ReceivePackageC__Leds__led1On();
+          ReceivePackageC__Leds__led2On();
         }
     }
 }
@@ -11018,14 +11035,68 @@ inline static error_t ReceivePackageC__initializeFlashTask__postTask(void ){
 #line 56
 }
 #line 56
-# 89 "ReceivePackageC.nc"
+# 46 "/opt/tinyos-2.1.1/tos/chips/msp430/pins/HplMsp430GeneralIOP.nc"
+static inline void /*HplMsp430GeneralIOC.P54*/HplMsp430GeneralIOP__36__IO__clr(void )
+#line 46
+{
+#line 46
+  { __nesc_atomic_t __nesc_atomic = __nesc_atomic_start();
+#line 46
+    * (volatile uint8_t * )49U &= ~(0x01 << 4);
+#line 46
+    __nesc_atomic_end(__nesc_atomic); }
+}
+
+# 39 "/opt/tinyos-2.1.1/tos/chips/msp430/pins/HplMsp430GeneralIO.nc"
+inline static void /*PlatformLedsC.Led0Impl*/Msp430GpioC__0__HplGeneralIO__clr(void ){
+#line 39
+  /*HplMsp430GeneralIOC.P54*/HplMsp430GeneralIOP__36__IO__clr();
+#line 39
+}
+#line 39
+# 38 "/opt/tinyos-2.1.1/tos/chips/msp430/pins/Msp430GpioC.nc"
+static inline void /*PlatformLedsC.Led0Impl*/Msp430GpioC__0__GeneralIO__clr(void )
+#line 38
+{
+#line 38
+  /*PlatformLedsC.Led0Impl*/Msp430GpioC__0__HplGeneralIO__clr();
+}
+
+# 30 "/opt/tinyos-2.1.1/tos/interfaces/GeneralIO.nc"
+inline static void LedsP__Led0__clr(void ){
+#line 30
+  /*PlatformLedsC.Led0Impl*/Msp430GpioC__0__GeneralIO__clr();
+#line 30
+}
+#line 30
+# 63 "/opt/tinyos-2.1.1/tos/system/LedsP.nc"
+static inline void LedsP__Leds__led0On(void )
+#line 63
+{
+  LedsP__Led0__clr();
+  ;
+#line 65
+  ;
+}
+
+# 45 "/opt/tinyos-2.1.1/tos/interfaces/Leds.nc"
+inline static void ReceivePackageC__Leds__led0On(void ){
+#line 45
+  LedsP__Leds__led0On();
+#line 45
+}
+#line 45
+# 95 "ReceivePackageC.nc"
 static inline void ReceivePackageC__BlockWrite__eraseDone(error_t error)
-#line 89
+#line 95
 {
   if (error == SUCCESS) {
       ReceivePackageC__flashReady = TRUE;
+      ReceivePackageC__Leds__led0On();
     }
-  else {
+  else 
+#line 99
+    {
       ReceivePackageC__initializeFlashTask__postTask();
     }
 }
@@ -12437,9 +12508,9 @@ static inline void /*SerialActiveMessageC.AM*/SerialActiveMessageP__0__AMSend__d
 }
 
 # 99 "/opt/tinyos-2.1.1/tos/interfaces/AMSend.nc"
-inline static void /*SerialActiveMessageC.AM*/SerialActiveMessageP__0__AMSend__sendDone(am_id_t arg_0x4087cce8, message_t * msg, error_t error){
+inline static void /*SerialActiveMessageC.AM*/SerialActiveMessageP__0__AMSend__sendDone(am_id_t arg_0x40876320, message_t * msg, error_t error){
 #line 99
-    /*SerialActiveMessageC.AM*/SerialActiveMessageP__0__AMSend__default__sendDone(arg_0x4087cce8, msg, error);
+    /*SerialActiveMessageC.AM*/SerialActiveMessageP__0__AMSend__default__sendDone(arg_0x40876320, msg, error);
 #line 99
 }
 #line 99
@@ -12538,59 +12609,59 @@ inline static error_t ReceivePackageC__beginWriteTask__postTask(void ){
 }
 #line 56
 # 46 "/opt/tinyos-2.1.1/tos/chips/msp430/pins/HplMsp430GeneralIOP.nc"
-static inline void /*HplMsp430GeneralIOC.P56*/HplMsp430GeneralIOP__38__IO__clr(void )
+static inline void /*HplMsp430GeneralIOC.P55*/HplMsp430GeneralIOP__37__IO__clr(void )
 #line 46
 {
 #line 46
   { __nesc_atomic_t __nesc_atomic = __nesc_atomic_start();
 #line 46
-    * (volatile uint8_t * )49U &= ~(0x01 << 6);
+    * (volatile uint8_t * )49U &= ~(0x01 << 5);
 #line 46
     __nesc_atomic_end(__nesc_atomic); }
 }
 
 # 39 "/opt/tinyos-2.1.1/tos/chips/msp430/pins/HplMsp430GeneralIO.nc"
-inline static void /*PlatformLedsC.Led2Impl*/Msp430GpioC__2__HplGeneralIO__clr(void ){
+inline static void /*PlatformLedsC.Led1Impl*/Msp430GpioC__1__HplGeneralIO__clr(void ){
 #line 39
-  /*HplMsp430GeneralIOC.P56*/HplMsp430GeneralIOP__38__IO__clr();
+  /*HplMsp430GeneralIOC.P55*/HplMsp430GeneralIOP__37__IO__clr();
 #line 39
 }
 #line 39
 # 38 "/opt/tinyos-2.1.1/tos/chips/msp430/pins/Msp430GpioC.nc"
-static inline void /*PlatformLedsC.Led2Impl*/Msp430GpioC__2__GeneralIO__clr(void )
+static inline void /*PlatformLedsC.Led1Impl*/Msp430GpioC__1__GeneralIO__clr(void )
 #line 38
 {
 #line 38
-  /*PlatformLedsC.Led2Impl*/Msp430GpioC__2__HplGeneralIO__clr();
+  /*PlatformLedsC.Led1Impl*/Msp430GpioC__1__HplGeneralIO__clr();
 }
 
 # 30 "/opt/tinyos-2.1.1/tos/interfaces/GeneralIO.nc"
-inline static void LedsP__Led2__clr(void ){
+inline static void LedsP__Led1__clr(void ){
 #line 30
-  /*PlatformLedsC.Led2Impl*/Msp430GpioC__2__GeneralIO__clr();
+  /*PlatformLedsC.Led1Impl*/Msp430GpioC__1__GeneralIO__clr();
 #line 30
 }
 #line 30
-# 93 "/opt/tinyos-2.1.1/tos/system/LedsP.nc"
-static inline void LedsP__Leds__led2On(void )
-#line 93
+# 78 "/opt/tinyos-2.1.1/tos/system/LedsP.nc"
+static inline void LedsP__Leds__led1On(void )
+#line 78
 {
-  LedsP__Led2__clr();
+  LedsP__Led1__clr();
   ;
-#line 95
+#line 80
   ;
 }
 
-# 78 "/opt/tinyos-2.1.1/tos/interfaces/Leds.nc"
-inline static void ReceivePackageC__Leds__led2On(void ){
-#line 78
-  LedsP__Leds__led2On();
-#line 78
+# 61 "/opt/tinyos-2.1.1/tos/interfaces/Leds.nc"
+inline static void ReceivePackageC__Leds__led1On(void ){
+#line 61
+  LedsP__Leds__led1On();
+#line 61
 }
-#line 78
-# 49 "ReceivePackageC.nc"
+#line 61
+# 58 "ReceivePackageC.nc"
 static inline message_t *ReceivePackageC__UartReceive__receive(am_id_t id, message_t *msg, void *payload, uint8_t len)
-#line 49
+#line 58
 {
   unsigned int __nesc_temp47;
   unsigned char *__nesc_temp46;
@@ -12598,17 +12669,15 @@ static inline message_t *ReceivePackageC__UartReceive__receive(am_id_t id, messa
   unsigned char *__nesc_temp44;
   unsigned int __nesc_temp43;
   unsigned char *__nesc_temp42;
-#line 50
+#line 59
   ReceivePackageMsg *btrpkt = (ReceivePackageMsg *)payload;
 
-#line 51
+#line 60
   if (len == sizeof(ReceivePackageMsg )) {
 
 
 
       uint16_t i;
-
-
 
       __nesc_hton_uint8(ReceivePackageC__buffer[__nesc_ntoh_uint16(ReceivePackageC__head.data)].data, __nesc_ntoh_uint8(btrpkt->type.data));
       (__nesc_temp42 = ReceivePackageC__head.data, __nesc_hton_uint16(__nesc_temp42, (__nesc_temp43 = __nesc_ntoh_uint16(__nesc_temp42)) + 1), __nesc_temp43);
@@ -12618,28 +12687,27 @@ static inline message_t *ReceivePackageC__UartReceive__receive(am_id_t id, messa
           __nesc_hton_uint8(ReceivePackageC__buffer[__nesc_ntoh_uint16(ReceivePackageC__head.data)].data, __nesc_ntoh_uint8(btrpkt->data[i].data));
           (__nesc_temp46 = ReceivePackageC__head.data, __nesc_hton_uint16(__nesc_temp46, (__nesc_temp47 = __nesc_ntoh_uint16(__nesc_temp46)) + 1), __nesc_temp47);
         }
-      ReceivePackageC__Leds__led2On();
+
       ReceivePackageC__packagecount++;
     }
   else {
     }
 
-
-
   if (__nesc_ntoh_uint8(btrpkt->type.data) == 01) {
+      ReceivePackageC__Leds__led1On();
       ReceivePackageC__beginWriteTask__postTask();
     }
   return msg;
 }
 
 # 67 "/opt/tinyos-2.1.1/tos/interfaces/Receive.nc"
-inline static message_t * /*SerialActiveMessageC.AM*/SerialActiveMessageP__0__Receive__receive(am_id_t arg_0x40876708, message_t * msg, void * payload, uint8_t len){
+inline static message_t * /*SerialActiveMessageC.AM*/SerialActiveMessageP__0__Receive__receive(am_id_t arg_0x40876ce0, message_t * msg, void * payload, uint8_t len){
 #line 67
   nx_struct message_t *__nesc_result;
 #line 67
 
 #line 67
-  __nesc_result = ReceivePackageC__UartReceive__receive(arg_0x40876708, msg, payload, len);
+  __nesc_result = ReceivePackageC__UartReceive__receive(arg_0x40876ce0, msg, payload, len);
 #line 67
 
 #line 67
@@ -12813,9 +12881,9 @@ static inline void /*SerialDispatcherC.SerialDispatcherP*/SerialDispatcherP__0__
     __nesc_atomic_end(__nesc_atomic); }
 }
 
-# 41 "ReceivePackageC.nc"
+# 50 "ReceivePackageC.nc"
 static inline void ReceivePackageC__SerialControl__stopDone(error_t error)
-#line 41
+#line 50
 {
 }
 
@@ -13252,9 +13320,9 @@ static inline void SerialP__stopDoneTask__runTask(void )
   SerialP__SerialFlush__flush();
 }
 
-# 43 "ReceivePackageC.nc"
+# 52 "ReceivePackageC.nc"
 static inline void ReceivePackageC__SerialControl__startDone(error_t error)
-#line 43
+#line 52
 {
   if (error == SUCCESS) {
       ReceivePackageC__uartFull = FALSE;
@@ -13832,9 +13900,9 @@ inline static error_t ReceivePackageC__BlockWrite__erase(void ){
 #line 83
 }
 #line 83
-# 107 "ReceivePackageC.nc"
+# 113 "ReceivePackageC.nc"
 static inline void ReceivePackageC__initializeFlashTask__runTask(void )
-#line 107
+#line 113
 {
 
 
@@ -13869,9 +13937,9 @@ inline static error_t ReceivePackageC__BlockWrite__write(storage_addr_t addr, vo
 #line 58
 }
 #line 58
-# 113 "ReceivePackageC.nc"
+# 119 "ReceivePackageC.nc"
 static inline void ReceivePackageC__beginWriteTask__runTask(void )
-#line 113
+#line 119
 {
   if (__nesc_ntoh_uint16(ReceivePackageC__tail.data) != __nesc_ntoh_uint16(ReceivePackageC__head.data) && ReceivePackageC__flashReady == TRUE) {
       __nesc_hton_uint16(ReceivePackageC__updatedTail.data, __nesc_ntoh_uint16(ReceivePackageC__tail.data) + (__nesc_ntoh_uint16(ReceivePackageC__head.data) - __nesc_ntoh_uint16(ReceivePackageC__tail.data)));
@@ -14202,12 +14270,13 @@ inline static error_t ReceivePackageC__SerialControl__start(void ){
 #line 83
 }
 #line 83
-# 33 "ReceivePackageC.nc"
+# 41 "ReceivePackageC.nc"
 static inline void ReceivePackageC__Boot__booted(void )
-#line 33
+#line 41
 {
   __nesc_hton_uint16(ReceivePackageC__head.data, 0);
   __nesc_hton_uint16(ReceivePackageC__tail.data, 0);
+
   ReceivePackageC__initializeFlashTask__postTask();
 
   ReceivePackageC__SerialControl__start();

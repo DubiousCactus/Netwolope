@@ -6,6 +6,8 @@
 /*
  * program that receives data written to the Mote through the command:
  * make telosb install
+ * use the following script ./SendImageToMote which will send the PGMExample.PGM to the mote.
+ * or just the command:
  * java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 00 14 00 00 00 00 00 03 03 03 03 00 00 07 07 07 07 00 00 0B 0B 0B
  * It receives packages until type = 01 and then store all the package in the flash
  */
@@ -39,13 +41,9 @@ implementation {
 	event void Boot.booted() {
 		head = 0;
 		tail = 0;
-		/*
-		 * Erase flash
-		 */
+		/* Erase flash */
 		post initializeFlashTask();
- 		/*
- 		 * Read data to flash
- 		 */
+ 		/* Read data to flash */
 		call SerialControl.start();
 	}
 
@@ -64,9 +62,7 @@ implementation {
 	  	// and assigned to a local variable
 	    
 	    uint16_t i;
-		/*
-		 * To save type, datalength, data to the buffer.
-		 */
+		/* To save type, datalength, data to the buffer. */
 		buffer[head] = btrpkt->type;
 		head++;
 		buffer[head] = btrpkt->datalength;
@@ -75,15 +71,14 @@ implementation {
 			buffer[head] = btrpkt->data[i];
 			head++;
 		}
-		call Leds.led2On();	 
+		 
 		packagecount++;   			
 
 	  }else{
 	  }
-	  /*
-	   * When last package is send
-	   */
+	  /* When last package is send */
 	  if(btrpkt->type == 01){
+	  	call Leds.led1On();	
 	  	post beginWriteTask();	
 	  }
 		return msg;	
@@ -100,7 +95,7 @@ implementation {
   event void BlockWrite.eraseDone(error_t error){
     if (error == SUCCESS) {
     	flashReady = TRUE;
-    	//call Leds.set(4);
+    	call Leds.led0On();
     }else {
     	post initializeFlashTask();
     }
@@ -110,7 +105,7 @@ implementation {
     if (error == SUCCESS) {
       tail = updatedTail;
   	  if(tail==head){
-  		call Leds.led1On();
+  		call Leds.led2On();
   	  }      
     }
   }
