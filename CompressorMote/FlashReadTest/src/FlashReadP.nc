@@ -3,6 +3,14 @@
 #include "FlashRead.h"
 #include "Serial.h"
 
+/*
+ * program that reads from the flash and send the data through the serial.
+ * In this program it will send package until type = 01 and start over. 
+ * make telosb install
+ * export MOTECOM=serial@/dev/ttyUSB0:telosb 
+ * java net.tinyos.tools.Listen
+ * 
+ */
 
 module FlashReadP{
 	uses {

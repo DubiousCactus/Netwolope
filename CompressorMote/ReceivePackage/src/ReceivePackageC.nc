@@ -3,6 +3,12 @@
 #include "ReceivePackage.h"
 #include "Serial.h"
 
+/*
+ * program that receives data written to the Mote through the command:
+ * make telosb install
+ * java net.tinyos.tools.Send 00 FF FF 00 00 16 22 06 00 14 00 00 00 00 00 03 03 03 03 00 00 07 07 07 07 00 00 0B 0B 0B
+ * It receives packages until type = 01 and then store all the package in the flash
+ */
 module ReceivePackageC {
 	uses interface Boot;
 	uses interface Leds;
@@ -33,8 +39,13 @@ implementation {
 	event void Boot.booted() {
 		head = 0;
 		tail = 0;
+		/*
+		 * Erase flash
+		 */
 		post initializeFlashTask();
-		//post initialReadTask();
+ 		/*
+ 		 * Read data to flash
+ 		 */
 		call SerialControl.start();
 	}
 
