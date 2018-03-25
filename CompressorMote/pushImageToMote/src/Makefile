@@ -1,0 +1,2 @@
+COMPONENT=pushImageToMoteC
+include $(MAKERULES)
