@@ -28,11 +28,12 @@ module SinkMoteM @safe() {
     interface Boot;
     interface Leds;
     interface Timer<TMilli> as ErrorTimer;
+    interface Timer<TMilli> as SerialTimer;
     
     interface SplitControl as SerialControl;
     interface Packet as SerialPacket;
     interface AMPacket as SerialAMPacket;
-    interface AMSend as SerialSend[am_id_t id];
+    interface AMSend as SerialSend[am_id_t msg_type];
     
     interface SplitControl as RadioControl;
     interface Packet as RadioPacket;
@@ -49,6 +50,8 @@ implementation{
   // Allocate memory for the queue
   message_t  queueArray[QUEUE_SIZE];
   
+  message_t serialPacket;
+  
   // Allocate memory for pointers to each element of the queue.
   message_t  * ONE_NOK queuePointers[QUEUE_SIZE];
   uint8_t    queueHead, queueTail;
@@ -60,6 +63,7 @@ implementation{
   void signalPacketDropped();
 
   void signalFailure();
+  PartialDataMsg* prepareSerialMsg();
 
 
   event void Boot.booted(){
@@ -75,21 +79,36 @@ implementation{
     
     serialBusy = FALSE;
     
-    call RadioControl.start();
+    //call RadioControl.start();
     call SerialControl.start();
   }
   
-	event void SerialControl.startDone(error_t error) {
-		if (error == SUCCESS) {
-		  queueFull = FALSE;
-		}
-	}
+  event void SerialControl.startDone(error_t error) {
+    if (error == SUCCESS) {
+      queueFull = FALSE;
+      call SerialTimer.startPeriodic(5000);
+    }
+  }
+
+  event void SerialTimer.fired(){
+    uint8_t i;
+    PartialDataMsg* pdm = prepareSerialMsg();
+    call Leds.led1Toggle();
+    
+    for (i = 0; i < 20; i++) {
+      pdm->data[i] += i+1;
+    }
+    
+    if (call SerialSend.send[AM_PARTIAL_DATA_MSG](AM_BROADCAST_ADDR, &serialPacket, sizeof(PartialDataMsg)) == SUCCESS) {
+      //Send success;
+    }
+  }
 
   event void RadioControl.startDone(error_t error){
     // TODO Auto-generated method stub
   }
   
-	event void SerialControl.stopDone(error_t error) { }
+  event void SerialControl.stopDone(error_t error) { }
 
   event void RadioControl.stopDone(error_t error) { }
   
@@ -119,10 +138,11 @@ implementation{
     return ret;
   }
   
-  event void SerialSend.sendDone[am_id_t id](message_t *msg, error_t error){
+  event void SerialSend.sendDone[am_id_t msg_type](message_t *msg, error_t error){
     if (error != SUCCESS) {
       signalFailure();
     } else {
+      /*
       atomic {
         if (msg == queuePointers[queueTail]) {
             if (++queueTail >= QUEUE_SIZE)
@@ -132,6 +152,7 @@ implementation{
         }
       }
       post serialSendTask();
+      */
     }
   }
   
@@ -145,6 +166,19 @@ implementation{
 
   void signalFailure() {
     call ErrorTimer.startPeriodic(250);
+  }
+  
+  PartialDataMsg* prepareSerialMsg() {
+    
+    PartialDataMsg* pdm = (PartialDataMsg*)call SerialPacket.getPayload(&serialPacket, sizeof(PartialDataMsg));
+    if (pdm == NULL) {
+      signalFailure();
+    }
+    if (call SerialPacket.maxPayloadLength() < sizeof(PartialDataMsg)) {
+      signalFailure();
+    }
+    
+    return pdm;
   }
   
   task void serialSendTask() {
@@ -169,12 +203,11 @@ implementation{
     call SerialPacket.clear(msg);
     call SerialAMPacket.setSource(msg, src);
 
-    if (call SerialSend.send[id](addr, msg, len) == SUCCESS) {
+    if (call SerialSend.send[AM_PARTIAL_DATA_MSG](addr, msg, len) == SUCCESS) {
       call Leds.led1Toggle();
     } else {
       signalFailure();
       post serialSendTask();
     }
-  }  
-
+  }
 }
