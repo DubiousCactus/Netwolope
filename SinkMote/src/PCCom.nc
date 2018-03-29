@@ -9,8 +9,6 @@ module PCCom{
   }
 
   uses {
-    interface Leds;
-    interface Timer<TMilli> as ErrorTimer;
     interface Timer<TMilli> as Timeout;
     
     interface SplitControl as SerialControl;
@@ -25,21 +23,13 @@ implementation{
   uint8_t currentRetry = 0;
   ConnectionState state = STATE_BEGIN;
   
-  void signalPacketDropped() {
-    call ErrorTimer.startPeriodic(500);
-  }
-
-  void signalFailure() {
-    call ErrorTimer.startPeriodic(250);
-  }
-  
   TransmitBeginMsg* prepareTransmitBeginMsg() {
     TransmitBeginMsg* msg = (TransmitBeginMsg*)call SerialPacket.getPayload(&packet, sizeof(TransmitBeginMsg));
     if (msg == NULL) {
-      signalFailure();
+      signal PCConnection.error(PC_CONN_UNEXPECTED_ERROR);
     }
     if (call SerialPacket.maxPayloadLength() < sizeof(TransmitBeginMsg)) {
-      signalFailure();
+      signal PCConnection.error(PC_CONN_UNEXPECTED_ERROR);
     }
     return msg;
   }
@@ -76,7 +66,7 @@ implementation{
     if (error == SUCCESS) {
       post startCommunicationTask();
     } else {
-      signalFailure();
+      signal PCConnection.error(PC_CONN_UNEXPECTED_ERROR);
     }
   }
 
@@ -90,10 +80,6 @@ implementation{
         post startCommunicationTask();
       }
     }
-  }
-  
-  event void ErrorTimer.fired(){
-    call Leds.led0Toggle();
   }
 
   event void SerialSend.sendDone[am_id_t msg_type](message_t *msg, error_t error){
@@ -110,7 +96,7 @@ implementation{
         }
       }
     } else {
-      signalFailure();
+      signal PCConnection.error(PC_CONN_UNEXPECTED_ERROR);
     }
   }
 

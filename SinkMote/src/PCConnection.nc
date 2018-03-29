@@ -1,3 +1,5 @@
+#include "PCComm.h"
+
 interface PCConnection {
   
   /**
@@ -11,4 +13,11 @@ interface PCConnection {
    * Signaled when a connection to the PC is established successfully.
    */
   event void established();
+  
+  /**
+   * Signaled when a communication error occurs.
+   * 
+   * @param error The error code describing the error.
+   */
+  event void error(PcCommunicationError error);
 }

@@ -21,5 +21,10 @@ typedef nx_struct TransmitBeginMsg {
 } TransmitBeginMsg;
 
 
+typedef enum {
+  PC_CONN_ERROR_UNKNOWN = 0,
+  PC_CONN_UNEXPECTED_ERROR = 1
+} PcCommunicationError;
+
 
 #endif /* PCCOMM_H */

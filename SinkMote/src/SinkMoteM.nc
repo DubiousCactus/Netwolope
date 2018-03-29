@@ -28,6 +28,7 @@ module SinkMoteM @safe() {
     interface Leds;
     interface PCConnection;
     interface Boot;
+    interface Timer<TMilli> as ErrorTimer;
   }
 }
 implementation{
@@ -38,5 +39,13 @@ implementation{
   
   event void PCConnection.established(){
     call Leds.led2On();
+  }
+
+  event void PCConnection.error(PcCommunicationError error){
+    call ErrorTimer.startPeriodic(250);
+  }
+
+  event void ErrorTimer.fired(){
+    call Leds.led0Toggle();
   }
 }
