@@ -8,21 +8,19 @@ implementation{
   components new TimerMilliC() as Timer0;
   components new TimerMilliC() as Timer1;
   components SinkMoteM;
-
-  SinkMoteM.Boot -> MainC;
-  SinkMoteM.Leds -> LedsC;
-  SinkMoteM.ErrorTimer -> Timer0;
-  SinkMoteM.SerialTimer -> Timer1;
-	
-  SinkMoteM.SerialControl -> Serial;
-  SinkMoteM.SerialPacket -> Serial;
-  SinkMoteM.SerialAMPacket -> Serial;
-  SinkMoteM.SerialSend -> Serial.AMSend;
+  components PCCom;
   
-  SinkMoteM.RadioControl -> Radio;
-  SinkMoteM.RadioPacket -> Radio;
-  SinkMoteM.RadioAMPacket -> Radio;
-  //SinkMoteM.RadioSend -> Radio;
-  //SinkMoteM.RadioReceive -> Radio.Receive;
-  //SinkMoteM.RadioSnoop -> Radio.Snoop;
+  PCCom.Boot -> MainC;
+  PCCom.Leds -> LedsC;
+  PCCom.ErrorTimer -> Timer0;
+  PCCom.Timeout -> Timer1;
+  
+  PCCom.SerialControl -> Serial;
+  PCCom.SerialPacket -> Serial;
+  PCCom.SerialAMPacket -> Serial;
+  PCCom.SerialSend -> Serial.AMSend;
+  PCCom.SerialReceive -> Serial.Receive; 
+  
+  SinkMoteM.Leds -> LedsC;
+  SinkMoteM.PCConnection -> PCCom;
 }

@@ -12,7 +12,7 @@ module PCCom{
     interface Boot;
     interface Leds;
     interface Timer<TMilli> as ErrorTimer;
-    interface Timer<TMilli> as SerialTimer;
+    interface Timer<TMilli> as Timeout;
     
     interface SplitControl as SerialControl;
     interface Packet as SerialPacket;
@@ -47,7 +47,7 @@ implementation{
   
   task void sendTransmitBeginMsg() {
     TransmitBeginMsg* msg = prepareTransmitBeginMsg();
-    msg->bufferSize = 50;
+    msg->bufferSize = 53; // TODO: Fix this by sending something meaningful
     
     if (call SerialSend.send[AM_TRANSMIT_BEGIN_MSG](AM_BROADCAST_ADDR, &packet, sizeof(TransmitBeginMsg)) == SUCCESS) {
       atomic {
@@ -75,14 +75,20 @@ implementation{
     if (error == SUCCESS) {
       post startCommunicationTask();
     } else {
-      call Leds.led0On();
+      signalFailure();
     }
   }
 
   event void SerialControl.stopDone(error_t error){ }
 
-  event void SerialTimer.fired(){
-    
+  event void Timeout.fired(){
+    atomic {
+      if (state == STATE_WAITING_START_RESPONSE) {
+        // Timeout reach and we are still waiting for
+        // a response from PC. Retry once more.
+        post startCommunicationTask();
+      }
+    }
   }
   
   event void ErrorTimer.fired(){
@@ -93,7 +99,13 @@ implementation{
     if (error == SUCCESS) {
       atomic {
         if (state == STATE_SENDING_START_REQUEST) {
+          // BeginTransmit Message has been sent to the PC
+          // Now we are waiting for a response.
           state = STATE_WAITING_START_RESPONSE;
+          
+          // Wait 2 seconds before resending the
+          // BeginTransmit message to the PC.
+          call Timeout.startOneShot(2000);
         }
       }
     } else {
@@ -105,6 +117,15 @@ implementation{
     atomic {
       if (state == STATE_WAITING_START_RESPONSE) {
         
+        if (msg_type == AM_TRANSMIT_BEGIN_ACK_MSG) {
+          // We have received an ACK for the TransmitBegin message.
+          // This means that we have established a connection to 
+          // the PC.
+          call Timeout.stop();
+          
+          state = STATE_ESTABLISHED;
+          signal PCConnection.established();
+        }
       }
     }
     return msg;

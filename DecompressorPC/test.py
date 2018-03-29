@@ -20,7 +20,8 @@ while True:
   if p:
     if p.type == AM_TRANSMIT_BEGIN_MSG:
       print 'Received TRANSMIT BEGIN message. Sending acknowledgement'
-      am.write([], AM_TRANSMIT_BEGIN_ACK_MSG)
+      msg = tos.ActiveMessage([9], AM_TRANSMIT_BEGIN_ACK_MSG)
+      am.write(msg, AM_TRANSMIT_BEGIN_ACK_MSG)
       print ' - Acknowledgement sent'
     elif p.type == AM_PARTIAL_DATA_MSG:
       print 'Received partial data'

@@ -9,10 +9,4 @@ typedef nx_struct PartialDataMsgT {
 } PartialDataMsg;
 
 
-enum {
-  AM_TEST_SERIAL_MSG = 0x89,
-  AM_PARTIAL_DATA_MSG = 0x42,
-};
-
-
 #endif /* SINK_MOTE_H */
