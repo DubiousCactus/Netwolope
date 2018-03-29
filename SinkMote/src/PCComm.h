@@ -8,22 +8,20 @@ enum {
   AM_TRANSMIT_END_MSG = 0x43
 };
 
-typedef enum {
-  STATE_BEGIN = 0,
-  STATE_SENDING_START_REQUEST = 1,
-  STATE_WAITING_START_RESPONSE = 2,
-  STATE_ESTABLISHING = 3,
-  STATE_ESTABLISHED = 4
-} ConnectionState;
-
 typedef nx_struct TransmitBeginMsg {
   nx_uint8_t bufferSize;
 } TransmitBeginMsg;
 
+typedef nx_struct PartialDataMsg {
+  nx_uint8_t size;
+  nx_uint8_t data[49];
+} PartialDataMsg;
 
 typedef enum {
-  PC_CONN_ERROR_UNKNOWN = 0,
-  PC_CONN_UNEXPECTED_ERROR = 1
+  PC_CONN_ERROR_UNKNOWN,
+  PC_CONN_UNEXPECTED_ERROR,
+  PC_CONN_NOT_CONNECTED,
+  PC_CONN_ERR_DISCONNECTED
 } PcCommunicationError;
 
 

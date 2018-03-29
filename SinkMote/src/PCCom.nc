@@ -19,6 +19,14 @@ module PCCom{
   }
 }
 implementation{
+  typedef enum {
+    STATE_BEGIN,
+    STATE_SENDING_START_REQUEST,
+    STATE_WAITING_START_RESPONSE,
+    STATE_ESTABLISHED,
+    STATE_SENDING_PARTIAL_DATA
+  } ConnectionState;
+  
   message_t packet;
   uint8_t currentRetry = 0;
   ConnectionState state = STATE_BEGIN;
@@ -32,6 +40,36 @@ implementation{
       signal PCConnection.error(PC_CONN_UNEXPECTED_ERROR);
     }
     return msg;
+  }
+  
+  PartialDataMsg* preparePartialDataMsg() {
+    PartialDataMsg* msg = (PartialDataMsg*)call SerialPacket.getPayload(&packet, sizeof(PartialDataMsg));
+    if (msg == NULL) {
+      signal PCConnection.error(PC_CONN_UNEXPECTED_ERROR);
+    }
+    if (call SerialPacket.maxPayloadLength() < sizeof(PartialDataMsg)) {
+      signal PCConnection.error(PC_CONN_UNEXPECTED_ERROR);
+    }
+    return msg;
+  }
+  
+  void sendPartialData(uint8_t *data, uint8_t size) {
+    PartialDataMsg* msg = preparePartialDataMsg();
+    uint8_t i;
+    
+    msg->size = size;
+    for (i = 0; i < size; i++) {
+      msg->data[i] = data[i];
+    }
+    
+    if (call SerialSend.send[AM_PARTIAL_DATA_MSG](AM_BROADCAST_ADDR, &packet, sizeof(PartialDataMsg)) == SUCCESS) {
+      atomic {
+        state = STATE_SENDING_PARTIAL_DATA;
+      }
+    } else {
+      signal PCConnection.error(PC_CONN_ERR_DISCONNECTED);
+    }
+    
   }
   
   task void sendTransmitBeginMsg() {
@@ -53,8 +91,6 @@ implementation{
     }
     post sendTransmitBeginMsg();
   }
-  
-  
 
   command void PCConnection.init(){
     call SerialControl.start();
@@ -93,6 +129,17 @@ implementation{
           // Wait 2 seconds before resending the
           // BeginTransmit message to the PC.
           call Timeout.startOneShot(2000);
+          
+        } else if (state == STATE_SENDING_PARTIAL_DATA) {
+          // The data that we have sent the PC was
+          // received successfully. We go back to a
+          // previous state where client can send 
+          // more data.
+          state = STATE_ESTABLISHED;
+          
+          // Signal client that the SEND request
+          // was fulfilled.
+          signal PCConnection.sent();
         }
       }
     } else {
@@ -116,5 +163,15 @@ implementation{
       }
     }
     return msg;
+  }
+
+  command void PCConnection.send(uint8_t *data, uint8_t size){
+    atomic {
+      if (state == STATE_ESTABLISHED) {
+        sendPartialData(data, size);
+      } else {
+        signal PCConnection.error(PC_CONN_NOT_CONNECTED);
+      }
+    }
   }
 }

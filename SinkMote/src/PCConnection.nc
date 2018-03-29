@@ -10,6 +10,14 @@ interface PCConnection {
   command void init();
   
   /**
+   * Attempts to send partial data to the PC.
+   * 
+   * @param data  A pointer to a buffer
+   * @param size  The length of data to send.
+   */
+  command void send(uint8_t* data, uint8_t size);
+  
+  /**
    * Signaled when a connection to the PC is established successfully.
    */
   event void established();
@@ -20,4 +28,9 @@ interface PCConnection {
    * @param error The error code describing the error.
    */
   event void error(PcCommunicationError error);
+  
+  /**
+   * Signaled when some data has been sent successfully.
+   */
+  event void sent();
 }

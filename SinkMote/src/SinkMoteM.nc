@@ -32,13 +32,35 @@ module SinkMoteM @safe() {
   }
 }
 implementation{
+  enum {
+    BUFFER_SIZE = 2048,
+    PACKET_SIZE = 40
+  };
+  uint8_t buffer[BUFFER_SIZE];
+  uint16_t head = 0;
+  uint16_t tail = 0;
+  
+  task void sendNextPacket() {
+    call PCConnection.send(&(buffer[head]), PACKET_SIZE);
+    head += PACKET_SIZE;
+  }
 
   event void Boot.booted(){
+    uint16_t i;
+    head = tail = 0;
+    
+    // Simulate a ring buffer
+    for (i = 0; i < BUFFER_SIZE; i++) {
+      buffer[i] = i; // TODO: Fix this
+      tail = i;
+    }
+    
     call PCConnection.init();
   }
   
   event void PCConnection.established(){
     call Leds.led2On();
+    post sendNextPacket();
   }
 
   event void PCConnection.error(PcCommunicationError error){
@@ -47,5 +69,9 @@ implementation{
 
   event void ErrorTimer.fired(){
     call Leds.led0Toggle();
+  }
+
+  event void PCConnection.sent(){
+    call Leds.set(255);
   }
 }
