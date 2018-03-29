@@ -27,9 +27,15 @@ module SinkMoteM @safe() {
   uses {
     interface Leds;
     interface PCConnection;
+    interface Boot;
   }
 }
 implementation{
+
+  event void Boot.booted(){
+    call PCConnection.init();
+  }
+  
   event void PCConnection.established(){
     call Leds.led2On();
   }

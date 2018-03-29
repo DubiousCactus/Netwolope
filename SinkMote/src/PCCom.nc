@@ -9,7 +9,6 @@ module PCCom{
   }
 
   uses {
-    interface Boot;
     interface Leds;
     interface Timer<TMilli> as ErrorTimer;
     interface Timer<TMilli> as Timeout;
@@ -65,11 +64,13 @@ implementation{
     post sendTransmitBeginMsg();
   }
   
-  /* REGION: Event handlers */
+  
 
-  event void Boot.booted(){
+  command void PCConnection.init(){
     call SerialControl.start();
   }
+  
+  /* REGION: Event handlers */
 
   event void SerialControl.startDone(error_t error){
     if (error == SUCCESS) {
