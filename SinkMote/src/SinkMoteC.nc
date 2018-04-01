@@ -10,6 +10,7 @@ implementation{
   components SinkMoteM;
   components PCCom;
   
+  
   PCCom.Timeout -> Timer1;
   PCCom.SerialControl -> Serial;
   PCCom.SerialPacket -> Serial;
@@ -21,4 +22,6 @@ implementation{
   SinkMoteM.Leds -> LedsC;
   SinkMoteM.ErrorTimer -> Timer0;
   SinkMoteM.PCConnection -> PCCom;
+  SinkMoteM.RadioAMPacket -> Radio;
+  SinkMoteM.RadioPacket -> Radio;
 }

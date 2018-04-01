@@ -29,30 +29,54 @@ module SinkMoteM @safe() {
     interface PCConnection;
     interface Boot;
     interface Timer<TMilli> as ErrorTimer;
+    interface Packet as RadioPacket;
+    interface AMPacket as RadioAMPacket;
   }
 }
 implementation{
   enum {
-    BUFFER_SIZE = 2048,
-    PACKET_SIZE = 40
+    MSG_QUEUE_CAPACITY = 10,
+    PAYLOAD_CAPACITY = 50
   };
-  uint8_t buffer[BUFFER_SIZE];
-  uint16_t head = 0;
-  uint16_t tail = 0;
+  
+  typedef nx_struct {
+    message_t messages[MSG_QUEUE_CAPACITY];
+    nx_uint8_t nextOut;
+    nx_uint8_t nextIn;
+    nx_uint8_t size;
+  } MessageQueue;
+
+  MessageQueue queue;
+  bool isEOFBeingSent;
   
   task void sendNextPacket() {
-    call PCConnection.send(&(buffer[head]), PACKET_SIZE);
-    head += PACKET_SIZE;
+    atomic {
+      if (queue.size > 0) {
+        message_t* msg = &(queue.messages[queue.nextOut]);
+        call PCConnection.sendMessage(msg, PAYLOAD_CAPACITY);
+      }
+    }
   }
 
   event void Boot.booted(){
-    uint16_t i;
-    head = tail = 0;
+    uint16_t i, j, counter;
     
-    // Simulate a ring buffer
-    for (i = 0; i < BUFFER_SIZE; i++) {
-      buffer[i] = i; // TODO: Fix this
-      tail = i;
+    isEOFBeingSent = FALSE;
+    
+    queue.nextIn = 0;
+    queue.nextOut = 0;
+    queue.size = 0;
+    
+    // Simulate that we have received data from another mote
+    for (i = 0; i < 5; i++) {
+      message_t* msg = &(queue.messages[i]);
+      uint8_t* data = (uint8_t*)call RadioPacket.getPayload(msg, PAYLOAD_CAPACITY);
+      for (j = 0; j < PAYLOAD_CAPACITY; j++) {
+        data[j] = (uint8_t)counter;
+        counter++;
+      }
+      queue.size++;
+      queue.nextIn = i+1;
     }
     
     call PCConnection.init();
@@ -73,5 +97,26 @@ implementation{
 
   event void PCConnection.sent(){
     call Leds.set(255);
+    
+    if (isEOFBeingSent == TRUE) {
+      isEOFBeingSent = FALSE;
+      return;
+    }
+
+    atomic {
+      // Remove last message from the queue
+      queue.nextOut += 1;
+      queue.size -= 1;
+      if (queue.nextOut >= MSG_QUEUE_CAPACITY) {
+        queue.nextOut = 0;
+      }
+    }
+    
+    if (queue.size > 0) {
+      post sendNextPacket();
+    } else {
+      isEOFBeingSent = TRUE;
+      call PCConnection.sendEOF();
+    }
   }
 }

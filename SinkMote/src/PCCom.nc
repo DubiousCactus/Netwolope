@@ -53,6 +53,17 @@ implementation{
     return msg;
   }
   
+  EndOfFileMsg* prepareEndOfFileMsg() {
+    EndOfFileMsg* msg = (EndOfFileMsg*)call SerialPacket.getPayload(&packet, sizeof(EndOfFileMsg));
+    if (msg == NULL) {
+      signal PCConnection.error(PC_CONN_UNEXPECTED_ERROR);
+    }
+    if (call SerialPacket.maxPayloadLength() < sizeof(EndOfFileMsg)) {
+      signal PCConnection.error(PC_CONN_UNEXPECTED_ERROR);
+    }
+    return msg;
+  }
+  
   void sendPartialData(uint8_t *data, uint8_t size) {
     PartialDataMsg* msg = preparePartialDataMsg();
     uint8_t i;
@@ -69,7 +80,30 @@ implementation{
     } else {
       signal PCConnection.error(PC_CONN_ERR_DISCONNECTED);
     }
+  }
+  
+  void sendPartialDataMessage(message_t *msg, uint8_t msgSize) {
+    if (call SerialSend.send[AM_PARTIAL_DATA_MSG](AM_BROADCAST_ADDR, msg, msgSize) == SUCCESS) {
+      atomic {
+        state = STATE_SENDING_PARTIAL_DATA;
+      }
+    } else {
+      signal PCConnection.error(PC_CONN_ERR_DISCONNECTED);
+    }
     
+  }
+  
+  void sendEOFMessage() {
+    EndOfFileMsg* msg = prepareEndOfFileMsg();
+    msg->temp = 1; // TODO: Fix this by sending something meaningful
+    
+    if (call SerialSend.send[AM_TRANSMIT_END_MSG](AM_BROADCAST_ADDR, &packet, sizeof(EndOfFileMsg)) == SUCCESS) {
+      atomic {
+        state = STATE_SENDING_PARTIAL_DATA;
+      }
+    } else {
+      signal PCConnection.error(PC_CONN_ERR_DISCONNECTED);
+    }
   }
   
   task void sendTransmitBeginMsg() {
@@ -169,6 +203,26 @@ implementation{
     atomic {
       if (state == STATE_ESTABLISHED) {
         sendPartialData(data, size);
+      } else {
+        signal PCConnection.error(PC_CONN_NOT_CONNECTED);
+      }
+    }
+  }
+
+  command void PCConnection.sendMessage(message_t *message, uint8_t payloadSize){
+    atomic {
+      if (state == STATE_ESTABLISHED) {
+        sendPartialDataMessage(message, payloadSize);
+      } else {
+        signal PCConnection.error(PC_CONN_NOT_CONNECTED);
+      }
+    }
+  }
+
+  command void PCConnection.sendEOF(){
+    atomic {
+      if (state == STATE_ESTABLISHED) {
+        sendEOFMessage();
       } else {
         signal PCConnection.error(PC_CONN_NOT_CONNECTED);
       }

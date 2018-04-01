@@ -17,6 +17,10 @@ interface PCConnection {
    */
   command void send(uint8_t* data, uint8_t size);
   
+  command void sendMessage(message_t* msg, uint8_t payloadSize);
+  
+  command void sendEOF();
+  
   /**
    * Signaled when a connection to the PC is established successfully.
    */

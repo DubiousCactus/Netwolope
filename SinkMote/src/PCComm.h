@@ -17,6 +17,10 @@ typedef nx_struct PartialDataMsg {
   nx_uint8_t data[49];
 } PartialDataMsg;
 
+typedef nx_struct {
+  nx_uint8_t temp;
+} EndOfFileMsg;
+
 typedef enum {
   PC_CONN_ERROR_UNKNOWN,
   PC_CONN_UNEXPECTED_ERROR,
