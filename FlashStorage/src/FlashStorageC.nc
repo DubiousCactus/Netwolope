@@ -1,6 +1,5 @@
 #include "StorageVolumes.h"
 
-
 configuration FlashStorageC{
 }
 implementation{
@@ -8,9 +7,13 @@ implementation{
   components LedsC;
   components FlashStorageM;
   components new BlockStorageC(VOLUME_BLOCKTEST) as BlockStorage;
+  components FlashStorageImplM;
+  
+  FlashStorageImplM.BlockRead -> BlockStorage;
+  FlashStorageImplM.BlockWrite -> BlockStorage;
+  FlashStorageImplM.Leds -> LedsC;
   
   FlashStorageM.Boot -> MainC;
   FlashStorageM.Leds -> LedsC;
-  FlashStorageM.BlockRead -> BlockStorage;
-  FlashStorageM.BlockWrite -> BlockStorage;
+  FlashStorageM.FlashStorage -> FlashStorageImplM;
 }
