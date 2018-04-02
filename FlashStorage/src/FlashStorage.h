@@ -3,7 +3,9 @@
 
 typedef enum {
   FS_ERR_UNKNOWN,
-  FS_ERR_WRITE_FAILED
+  FS_ERR_WRITE_FAILED,
+  FS_ERR_READ_FAILED,
+  FS_ERR_INVALID_STATE
 } FlashStorageError;
 
 #endif /* FLASH_STORAGE_H */
