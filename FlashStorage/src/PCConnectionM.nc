@@ -26,23 +26,43 @@ implementation{
      * A packet received from the PC indicating that
      * the PC intends to transfer a file to the mote.
      */
-    AM_MSG_BEGIN_FILE         = 0x80,
+    AM_MSG_BEGIN_FILE         = 128,
     
     /**
-     * An acknowledgement packet sent to the PC indicating
+     * An acknowledge packet sent to the PC indicating
      * that the mote is ready to begin receiving file data.
      */
-    AM_MSG_ACK_BEGIN_TRANSMIT = 0x81,
+    AM_MSG_ACK_BEGIN_FILE     = 129,
     
+    /**
+     * A packet received from the PC containing
+     * a part of a whole file.
+     */
+    AM_MSG_PARTIAL_DATA       = 130,
     
-    AM_MSG_PARTIAL_DATA       = 0x82,
-    AM_MSG_ACK_PARTIAL_DATA   = 0x83,
-    AM_MSG_EOF                = 0x84,
-    AM_MSG_ACK_END_TRANSMIT   = 0x85
+    /**
+     * An acknowledge packet packet sent to the PC
+     * indicating that the mote is ready to receive
+     * more data.
+     */
+    AM_MSG_ACK_PARTIAL_DATA   = 131,
+    
+    /**
+     * A packet from the PC indicating that the end
+     * of file is reached.
+     */
+    AM_MSG_EOF                = 132,
+    
+    /**
+     * An acknowledge packet packet sent to the PC
+     * indicating that the mote has received the
+     * whole file successfully
+     */
+    AM_MSG_ACK_EOF            = 133
   };
   
   enum {
-    BUFFER_CAPACITY = 128,
+    BUFFER_CAPACITY = 1024,
     PACKET_CAPACITY = 64
   } Constants;
   
@@ -94,8 +114,8 @@ implementation{
       totalSize = msg->totalSize;
       bufferIndex = 0;
     }
-    signal PCConnection.transmissionBegin(totalSize);
-    sendAckMsg(AM_MSG_ACK_BEGIN_TRANSMIT, totalSize);
+    signal PCConnection.fileBegin(totalSize);
+    sendAckMsg(AM_MSG_ACK_BEGIN_FILE, totalSize);
   }
   
   void processPartialData(message_t *msg, void *payload, uint8_t len) {
@@ -123,8 +143,9 @@ implementation{
       // Flush the data
       signal PCConnection.receivedData(buffer, bufferIndex);
     } else {
-      sendAckMsg(AM_MSG_ACK_END_TRANSMIT, 0);
+      sendAckMsg(AM_MSG_ACK_EOF, 0);
     }
+    signal PCConnection.fileEnd();
   }
   
   command void PCConnection.init(){
@@ -137,7 +158,7 @@ implementation{
       if (state == STATE_PROCESSING) {
         sendAckMsg(AM_MSG_ACK_PARTIAL_DATA, lastReceivedPayloadLength);
       } else if (state == STATE_PROCESSING_EOF) {
-        sendAckMsg(AM_MSG_ACK_END_TRANSMIT, 0);
+        sendAckMsg(AM_MSG_ACK_EOF, 0);
       }
     }
   }

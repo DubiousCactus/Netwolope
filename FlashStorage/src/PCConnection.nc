@@ -9,7 +9,9 @@ interface PCConnection{
   
   event void error(PCConnectionError error);
   
+  event void fileBegin(uint32_t totalLength);
+  
   event void receivedData(uint8_t* data, uint16_t length);
   
-  event void transmissionBegin(uint32_t totalLength);
+  event void fileEnd();
 }

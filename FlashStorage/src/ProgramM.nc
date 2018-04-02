@@ -18,13 +18,17 @@ implementation{
     
   }
   
-  event void PCConnection.transmissionBegin(uint32_t totalSize){
+  event void PCConnection.fileBegin(uint32_t totalSize){
     
   }
 
   event void PCConnection.receivedData(uint8_t *data, uint16_t length){
     call Leds.led1Toggle();
     call PCConnection.receiveMore();
+  }
+  
+  event void PCConnection.fileEnd(){
+    call Leds.led2On(); 
   }
 
   event void PCConnection.error(PCConnectionError error){
