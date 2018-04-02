@@ -4,6 +4,7 @@ import sys
 import tos
 import os
 from time import sleep
+from optparse import OptionParser
 
 if '-h' in sys.argv:
   print "Usage:", sys.argv[0], "serial@/dev/ttyUSB0:115200"
@@ -19,6 +20,7 @@ AM_MSG_EOF                = 132
 AM_MSG_ACK_END_TRANSMIT   = 133
 
 PACKET_CAPACITY = 64
+debug = '--debug' in sys.argv
 
 
 class BeginFileMsg(tos.Packet):
@@ -50,7 +52,7 @@ class MoteFileSender:
     self.am = tos.AM()
 
   def send_message(self, msg, msg_type, ack_type, num_retries = 10):
-    sleep(1)
+    #sleep(1)
     counter = 0
     while True:
       self.am.write(msg, msg_type)
@@ -96,10 +98,23 @@ class MoteFileSender:
     self.file_name = file_name
     self.file_size = int(os.stat(self.file_name).st_size)
 
+    print "Sending '%s' (%s bytes) to mote..." % (file_name, self.file_size)
+
     self.send_begin_file()
     self.send_file_contents()
     self.send_eof()
     print 'We are done!'
 
-sender = MoteFileSender()
-sender.send('data-256.bin')
+
+parser = OptionParser()
+parser.add_option("-f", "--file", dest="file_name", help="The FILE to transfer to the mote.", metavar="FILE")
+parser.add_option("-d", "--debug", action="store_true", dest="debug", help="Debug mode", default=False, metavar="DEBUG")
+(options, args) = parser.parse_args()
+
+if not options.file_name:
+  parser.print_help()
+  parser.error('Please specify a file to transfer')
+else:
+  sender = MoteFileSender()
+  sender.send(options.file_name)
+
