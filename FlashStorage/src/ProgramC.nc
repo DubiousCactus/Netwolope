@@ -11,7 +11,7 @@ implementation{
   components new TimerMilliC() as Timer0;
 
   components PCConnectionM;
-  //components FlashStorageImplM;
+  //components FlashStorageM;
 
   PCConnectionM.SerialControl -> Serial;
   PCConnectionM.SerialPacket -> Serial;
@@ -19,13 +19,13 @@ implementation{
   PCConnectionM.SerialSend -> Serial.AMSend;
   PCConnectionM.SerialReceive -> Serial.Receive;
 
-//  FlashStorageImplM.BlockRead -> BlockStorage;
-//  FlashStorageImplM.BlockWrite -> BlockStorage;
-//  FlashStorageImplM.Leds -> LedsC;
+//  FlashStorageM.BlockRead -> BlockStorage;
+//  FlashStorageM.BlockWrite -> BlockStorage;
+//  FlashStorageM.Leds -> LedsC;
   
   ProgramM.Boot -> MainC;
   ProgramM.Leds -> LedsC;
   ProgramM.PCConnection -> PCConnectionM;
   ProgramM.Timer -> Timer0;
-  //ProgramM.FlashStorage -> FlashStorageImplM;
+  //ProgramM.FlashStorage -> FlashStorageM;
 }

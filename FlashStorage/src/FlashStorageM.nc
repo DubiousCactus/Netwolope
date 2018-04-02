@@ -1,6 +1,6 @@
 #include "FlashStorage.h"
 
-module FlashStorageImplM{
+module FlashStorageM{
   provides {
     interface FlashStorage;
   }
