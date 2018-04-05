@@ -56,6 +56,3 @@ ifdef APP_MAKERULES
 else
   include $(MAKERULES)
 endif
-
-CFLAGS += -DTOSH_DATA_LENGTH=64
- 
