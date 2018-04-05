@@ -33,7 +33,7 @@ implementation{
   
   task void wipeFlashTask() {
     if (call BlockWrite.erase() != SUCCESS) {
-      signal FlashStorage.error(FS_ERR_WRITE_FAILED);
+      signal FlashStorage.error(FS_ERR_ERASE_FAILED);
       //post wipeFlashTask();
     }
   }
