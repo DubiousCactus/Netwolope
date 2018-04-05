@@ -56,6 +56,7 @@ implementation{
   }
 
 	event void FlashStorage.writeDone(){
+		//flashReady = TRUE;
 		// TODO Auto-generated method stub
 	}
 
