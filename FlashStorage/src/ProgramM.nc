@@ -12,7 +12,9 @@ module ProgramM{
 implementation{
 
   event void Boot.booted(){
-  	
+  	/*
+  	 * To erase flash when the mote is turned on
+  	 */
   	call FlashStorage.init(TRUE);
     call PCConnection.init();
   }
@@ -28,6 +30,7 @@ implementation{
   event void PCConnection.receivedData(uint8_t *data, uint16_t length){
     call Leds.led1Toggle();
     call PCConnection.receiveMore();
+    call FlashStorage.write(data, length);
   }
   
   event void PCConnection.fileEnd(){
@@ -55,7 +58,7 @@ implementation{
 	}
 
 	event void FlashStorage.initialised(uint32_t size){
-		// Erase is done right?
+		// Erase is done
 		call Leds.led0On();
 	}
 
