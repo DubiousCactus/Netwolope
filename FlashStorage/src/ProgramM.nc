@@ -12,6 +12,8 @@ module ProgramM{
 implementation{
 
   event void Boot.booted(){
+  	
+  	call FlashStorage.init(TRUE);
     call PCConnection.init();
   }
 
@@ -53,7 +55,8 @@ implementation{
 	}
 
 	event void FlashStorage.initialised(uint32_t size){
-		// TODO Auto-generated method stub
+		// Erase is done right?
+		call Leds.led0On();
 	}
 
 	event void FlashStorage.error(error_t error){
