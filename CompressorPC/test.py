@@ -52,7 +52,7 @@ class MoteFileSender:
     self.am = tos.AM()
 
   def send_message(self, msg, msg_type, ack_type, num_retries = 10):
-    #sleep(1)
+    sleep(1)
     counter = 0
     while True:
       self.am.write(msg, msg_type)
