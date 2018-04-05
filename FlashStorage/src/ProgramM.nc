@@ -30,7 +30,9 @@ implementation{
   event void PCConnection.receivedData(uint8_t *data, uint16_t length){
     call Leds.led1Toggle();
     call PCConnection.receiveMore();
-    call FlashStorage.write(data, length);
+    //if(flashReady == TRUE){
+    //  call FlashStorage.write(data, length);
+    //}
   }
   
   event void PCConnection.fileEnd(){
