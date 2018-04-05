@@ -5,6 +5,7 @@ module ProgramM{
     interface Boot;
     interface Leds;
     interface PCConnection;
+    interface FlashStorage;
     interface Timer<TMilli> as Timer;
   }
 }
@@ -46,4 +47,20 @@ implementation{
   event void Timer.fired(){
     call Leds.led0Toggle();
   }
+
+	event void FlashStorage.writeDone(){
+		// TODO Auto-generated method stub
+	}
+
+	event void FlashStorage.initialised(uint32_t size){
+		// TODO Auto-generated method stub
+	}
+
+	event void FlashStorage.error(error_t error){
+		// TODO Auto-generated method stub
+	}
+
+	event void FlashStorage.readDone(){
+		// TODO Auto-generated method stub
+	}
 }
