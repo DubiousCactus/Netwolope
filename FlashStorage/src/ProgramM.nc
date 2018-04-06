@@ -1,4 +1,5 @@
 #include "PCConnection.h"
+#include "FlashStorage.h"
 
 module ProgramM{
   uses {
@@ -12,30 +13,39 @@ module ProgramM{
 implementation{
 
   event void Boot.booted(){
-  	/*
-  	 * To erase flash when the mote is turned on
-  	 */
-  	call FlashStorage.init(TRUE);
+    // 1) Erase flash storage
+    call FlashStorage.init(TRUE);
+  }
+
+  event void FlashStorage.initialised(uint32_t size){
+    // 2) Once the flash is erased, start a PC connection
     call PCConnection.init();
   }
 
-  event void PCConnection.initDone(){
-    
+  event void PCConnection.initDone(){   
+    // 3) Ready to receive incoming data from the PC
   }
   
   event void PCConnection.fileBegin(uint32_t totalSize){
-    
+    // 4) PC wants to transfer a new file.
   }
 
   event void PCConnection.receivedData(uint8_t *data, uint16_t length){
-    call Leds.led1Toggle();
+    // 5) PC transfered part of the file to the PC
+    // Store the received data to flash
+    call FlashStorage.write(data, length);
+  }
+
+  event void FlashStorage.writeDone(){
+    // 6) When data has been written to the flash
+    // request PC to send more data
     call PCConnection.receiveMore();
-    //if(flashReady == TRUE){
-    //  call FlashStorage.write(data, length);
-    //}
   }
   
   event void PCConnection.fileEnd(){
+    // 7) This event is automatically signalled 
+    // when PC has finished transferring the file.
+    // At this point, we can start the compression.
     call Leds.led2On(); 
   }
 
@@ -51,25 +61,23 @@ implementation{
     }
   }
 
+  event void FlashStorage.error(FlashStorageError error){
+    if (error == FS_ERR_WRITE_FAILED) {
+      call Timer.startPeriodic(500);
+    } else if (error == FS_ERR_READ_FAILED) {
+      call Timer.startPeriodic(1000);
+    } else if (error == FS_ERR_INVALID_STATE) {
+      call Timer.startPeriodic(2000);
+    } else if (error == FS_ERR_UNKNOWN) {
+      call Timer.startPeriodic(3000);
+    }
+  }
+
   event void Timer.fired(){
     call Leds.led0Toggle();
   }
 
-	event void FlashStorage.writeDone(){
-		//flashReady = TRUE;
-		// TODO Auto-generated method stub
-	}
-
-	event void FlashStorage.initialised(uint32_t size){
-		// Erase is done
-		call Leds.led0On();
-	}
-
-	event void FlashStorage.error(error_t error){
-		// TODO Auto-generated method stub
-	}
-
-	event void FlashStorage.readDone(){
-		// TODO Auto-generated method stub
-	}
+  event void FlashStorage.readDone(){
+    // TODO Auto-generated method stub
+  }
 }

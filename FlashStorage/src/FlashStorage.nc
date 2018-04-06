@@ -1,3 +1,5 @@
+#include "FlashStorage.h"
+
 interface FlashStorage{
   
   command void init(bool erase);
@@ -8,7 +10,7 @@ interface FlashStorage{
   
   event void initialised(uint32_t size);
   
-  event void error(error_t error);
+  event void error(FlashStorageError error);
   
   event void readDone();
   

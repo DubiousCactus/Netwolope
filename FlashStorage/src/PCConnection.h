@@ -6,7 +6,7 @@ typedef enum {
    * Indicates a programmer error. This error should
    * not happen.
    */
-  PCC_ERR_PROGRAMMER,
+  PCC_ERR_PROGRAMMER = 20,
   
   /**
    * Initialisation of the serial interface failed.
