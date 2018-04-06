@@ -21,12 +21,12 @@
 
 #include "AM.h"
 #include "Serial.h"
-#include "SinkMote.h"
+#include "PCFileSender.h"
 
 module SinkMoteM @safe() {
   uses {
     interface Leds;
-    interface PCConnection;
+    interface PCFileSender;
     interface Boot;
     interface Timer<TMilli> as ErrorTimer;
     interface Packet as RadioPacket;
@@ -53,7 +53,7 @@ implementation{
     atomic {
       if (queue.size > 0) {
         message_t* msg = &(queue.messages[queue.nextOut]);
-        call PCConnection.sendMessage(msg, PAYLOAD_CAPACITY);
+        call PCFileSender.sendMessage(msg, PAYLOAD_CAPACITY);
       }
     }
   }
@@ -79,15 +79,15 @@ implementation{
       queue.nextIn = i+1;
     }
     
-    call PCConnection.init();
+    call PCFileSender.init();
   }
   
-  event void PCConnection.established(){
+  event void PCFileSender.established(){
     call Leds.led2On();
     post sendNextPacket();
   }
 
-  event void PCConnection.error(PcCommunicationError error){
+  event void PCFileSender.error(PCFileSenderError error){
     call ErrorTimer.startPeriodic(250);
   }
 
@@ -95,7 +95,7 @@ implementation{
     call Leds.led0Toggle();
   }
 
-  event void PCConnection.sent(){
+  event void PCFileSender.sent(){
     call Leds.set(255);
     
     if (isEOFBeingSent == TRUE) {
@@ -116,7 +116,7 @@ implementation{
       post sendNextPacket();
     } else {
       isEOFBeingSent = TRUE;
-      call PCConnection.sendEOF();
+      call PCFileSender.sendEOF();
     }
   }
 }
