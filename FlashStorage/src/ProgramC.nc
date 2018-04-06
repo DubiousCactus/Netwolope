@@ -12,6 +12,7 @@ implementation{
 
   components PCConnectionM;
   components FlashStorageM;
+  //components FlashReadM;
 
   PCConnectionM.SerialControl -> Serial;
   PCConnectionM.SerialPacket -> Serial;
@@ -22,6 +23,7 @@ implementation{
   FlashStorageM.BlockRead -> BlockStorage;
   FlashStorageM.BlockWrite -> BlockStorage;
   FlashStorageM.Leds -> LedsC;
+  
   
   ProgramM.Boot -> MainC;
   ProgramM.Leds -> LedsC;

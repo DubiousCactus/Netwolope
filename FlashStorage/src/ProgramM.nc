@@ -1,5 +1,6 @@
 #include "PCConnection.h"
 #include "FlashStorage.h"
+#include "ReceivePackage.h"
 
 module ProgramM{
   uses {
@@ -7,6 +8,7 @@ module ProgramM{
     interface Leds;
     interface PCConnection;
     interface FlashStorage;
+    //interface FlashRead;
     interface Timer<TMilli> as Timer;
   }
 }
