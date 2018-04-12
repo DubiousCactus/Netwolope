@@ -1,119 +1,122 @@
+#!/usr/bin/python3
+
 import binascii
+import serial
+import time
 import os
 
-from itertools import izip_longest
 from subprocess import call
+from progressbar import ProgressBar, Percentage, Bar
 from optparse import OptionParser
 
+MSG_RECEIVE_AT_ONCE = "RCV AT ONCE"
+MSG_RECEIVE_IN_CHUNKS = "RCV IN CHUNKS"
+MSG_READY_TO_RECEIVE = "READY"
+MSG_RECEIVE_OK = "RCV OK"
 
-# Constant for the packet
-DATA_SIZE = 20
-PACKET_IDX_TYPE = 8
-PACKET_IDX_LENGTH = 9
-PACKET_TYPE_DATA = 0
-PACKET_TYPE_END = 1
-PACKET_TEMPLATE = [
-  0x00,       #
-  0xFF, 0xFF, # destination address
-  0x00, 0x00, # source address
-  0x16,       # message length, 0x16 => 22
-  0x22,       # group id
-  0x06,       # handler id
-  0x00,       # packet type (0=data, 1=end of message)
-  0x00,       # actual data length
-  0x00,       # data[0]
-  0x00,       # data[1]
-  0x00,       # data[2]
-  0x00,       # data[3]
-  0x00,       # data[4]
-  0x00,       # data[5]
-  0x00,       # data[6]
-  0x00,       # data[7]
-  0x00,       # data[8]
-  0x00,       # data[9]
-  0x00,       # data[10]
-  0x00,       # data[11]
-  0x00,       # data[12]
-  0x00,       # data[13]
-  0x00,       # data[14]
-  0x00,       # data[15]
-  0x00,       # data[16]
-  0x00,       # data[17]
-  0x00,       # data[18]
-  0x00,       # data[19]
-]
+def init_serial(serialPort):
+  print("[*] Openning serial port {}".format(serialPort))
+  s = serial.Serial()
+  s.port = serialPort
+  s.baudrate = 115200
+  s.bytesize = serial.EIGHTBITS
+  s.parity = serial.PARITY_NONE
+  s.stopbits = serial.STOPBITS_ONE
+  s.timeout = 10 # 10 seconds timeout (is it enough for the mote to compress and send over radio ? lol)
+  s.xonxoff = False #disable software flow control
 
-def grouper(iterable, n, fillvalue=None):
-      args = [iter(iterable)] * n
-      return izip_longest(*args, fillvalue=fillvalue)
+  try:
+    s.open()
+  except Exception:
+    print("error opening serial port")
+    exit(1)
 
+  return s
 
-def to_hex(byte_array):
-    return ' '.join(map(lambda d: '%0.2X' % d, byte_array))
+def transfer(image, serialConnection, inChunks):
+  print("[*] Transfering file to the mote...")
+  if inChunks:
+    serialConnection.write(MSG_RECEIVE_IN_CHUNKS.encode('utf-8'))
+  else:
+    serialConnection.write(MSG_RECEIVE_AT_ONCE.encode('utf-8'))
+  
+  time.sleep(0.5)
+  pbar = ProgressBar(widgets=[Percentage(), Bar(marker='=',left='[',right=']')], maxval=len(image)).start()
+  for i, row in enumerate(image):
+    written = serialConnection.write(row)
+    pbar.update(i + 1)
+    time.sleep(0.2)
+    
+    if inChunks:
+      # Now wait until the mote is ready to receive again: when it sends something like OK
+      if serialConnection.read(len(MSG_READY_TO_RECEIVE)) != MSG_READY_TO_RECEIVE: # Blocking
+        print("[!] Mote didn't send <{}> ! Aborting...".format(MSG_READY_TO_RECEIVE))
+        pbar.finish()
+        serialConnection.close()
+        exit(1)
 
+  pbar.finish()
+  
+  serialConnection.timeout = 2
+  if serialConnection.read(len(MSG_RECEIVE_OK)) != MSG_RECEIVE_OK:
+    print("[!] Mote didn't send <{}> ! Sending probably failed...".format(MSG_RECEIVE_OK))
 
-def create_end_of_stream_packet():
-  packet = PACKET_TEMPLATE[:]
-  packet[PACKET_IDX_TYPE] = PACKET_TYPE_END
-  packet[PACKET_IDX_LENGTH] = 0
-  return to_hex(packet)
-
-
-def convert_to_packets(file_name):
-  f = open('data.bin', 'rb')
-  image_data = bytearray(f.read())
-  f.close()
-
-  # Group byte arrays in groups
-  for group in grouper(image_data, DATA_SIZE):
-    # Remove all None values at the end of the image data
-    data_items = [x for x in group if x is not None]
-
-    # Copy the packet template
-    packet = PACKET_TEMPLATE[:]
-
-    # Assign packet type
-    packet[PACKET_IDX_TYPE] = PACKET_TYPE_DATA
-
-    # Assign the actual length of the data
-    packet[PACKET_IDX_LENGTH] = len(data_items)
-
-    # Data values follow after the data length
-    data_idx = PACKET_IDX_LENGTH + 1
-
-    # Set the data bytes
-    for item in data_items:
-      packet[data_idx] = item
-      data_idx += 1
-
-    yield to_hex(packet)
+  serialConnection.close()
+  exit(1)
 
 
-def transfer(file_name):
-  file_size = os.stat(file_name).st_size
-  packets = list(convert_to_packets(file_name))
-  print('File "%s" (%s bytes) is converted to %s packets' % (file_name, file_size, len(packets)))
+def open_file(fileName):
+  if not os.path.isfile(options.fileName):
+    print("[!] File not found !")
+    exit(1)
 
-  CMD = 'java net.tinyos.tools.Send'
-  for packet in packets:
-    print('Executing "%s %s"' % (CMD, packet))
-    call([CMD, packet])
+  print("[*] Opening PGM file")
+  pgmFile = open(fileName, 'rb') # Open in binary mode
+  try:
+    if pgmFile.readline().decode('ascii') == 'P5\n': # Check header
+      pgmFile.readline() # Dump the next line, it's a comment
+      (width, height) = [int(i) for i in pgmFile.readline().split()]
+      depth = int(pgmFile.readline())
+      
+      try:
+        if depth <= 255: # Only 8-bit images
 
-  # Append an end-of-stream packet
-  end_packet = create_end_of_stream_packet()
-  print('Executing "%s %s"' % (CMD, end_packet))
-  call([CMD, end_packet])
+          image = []
+          for y in range(height):
+            row = bytearray()
+            for x in range(width):
+              row.append(ord(pgmFile.read(1))) # Read one byte and append it to the row
+            image.append(row)
+            
+          return image
+        else:
+          raise(AssertionError)
+      except AssertionError:
+        print("[!] Not an 8-bit image !")
+        exit(1)
+    else:
+      raise(AssertionError)
+  except AssertionError:
+    print("[!] Not a PGM file !")
+    exit(1)
 
 
+
+# EXECUTION STARTS HERE
 parser = OptionParser()
-parser.add_option("-f", "--file", dest="file_name", help="The FILE to transfer to the mote.", metavar="FILE")
+parser.add_option("-f", "--file", dest="fileName", help="The FILE to transfer to the mote.", metavar="FILE")
+parser.add_option("-p", "--port", dest="serialPort", help="The SERIAL_PORT to write to.", metavar="SERIAL_PORT")
+parser.add_option("-c", "--chunks", action="store_true", dest="chunks", default=False, help="Send the image in chunks")
 (options, args) = parser.parse_args()
 
-file_name = options.file_name
-if not file_name:
+
+if not options.fileName:
   parser.print_help()
   parser.error('Please specify a file to transfer')
-elif not os.path.isfile(file_name):
-  parser.error('File "%s" not found' % file_name)
+elif not options.serialPort:
+  parser.print_help()
+  parser.error('Please specify a serial port to write to')
 else:
-  transfer(file_name)
+  img = open_file(options.fileName)
+  s = init_serial(options.serialPort)
+  transfer(img, s, options.chunks)
