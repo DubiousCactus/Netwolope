@@ -62,7 +62,7 @@ implementation{
   };
   
   enum {
-    BUFFER_CAPACITY = 1024,
+    BUFFER_CAPACITY = 64,
     PACKET_CAPACITY = 64
   } Constants;
   
