@@ -1,6 +1,7 @@
 #include "AM.h"
 #include "Serial.h"
 #include "PCFileSender.h"
+#include "Messages.h"
 
 module SinkMoteM @safe() {
   uses {
@@ -49,9 +50,13 @@ implementation{
     // Simulate that we have received data from another mote
     for (i = 0; i < 5; i++) {
       message_t* msg = &(queue.messages[i]);
-      uint8_t* data = (uint8_t*)call RadioPacket.getPayload(msg, PAYLOAD_CAPACITY);
-      for (j = 0; j < PAYLOAD_CAPACITY; j++) {
-        data[j] = (uint8_t)counter;
+      PartialDataMsg* pdm = (PartialDataMsg*)call RadioPacket.getPayload(msg, sizeof(PartialDataMsg));
+      pdm->seqNo = i+1;
+      pdm->flags = 1;
+      pdm->dataSize = PARTIAL_DATA_CAPACITY;
+      
+      for (j = 0; j < PARTIAL_DATA_CAPACITY; j++) {
+        pdm->data[j] = (uint8_t)counter;
         counter++;
       }
       queue.size++;
@@ -75,7 +80,7 @@ implementation{
   }
 
   event void PCFileSender.sent(){
-    call Leds.set(255);
+    call Leds.led1Toggle();
     
     if (isEOFBeingSent == TRUE) {
       isEOFBeingSent = FALSE;

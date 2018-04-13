@@ -2,6 +2,7 @@
 #include "AM.h"
 #include "Serial.h"
 #include "PCFileSender.h"
+#include "Messages.h"
 
 module PCFileSenderM{
   provides {
@@ -28,24 +29,13 @@ implementation{
   } ConnectionState;
   
   enum {
-    AM_TRANSMIT_BEGIN_MSG = 64,
-    AM_TRANSMIT_BEGIN_ACK_MSG = 65,
-    AM_PARTIAL_DATA_MSG = 66,
-    AM_TRANSMIT_END_MSG = 67
+    AM_MSG_BEGIN_FILE = 64,
+    AM_MSG_BEGIN_FILE_ACK = 65,
+    AM_MSG_PARTIAL_DATA = 66,
+    AM_MSG_PARTIAL_DATA_ACK = 67, 
+    AM_MSG_EOF = 68,
+    AM_MSG_EOF_ACK = 69
   };
-
-  typedef nx_struct TransmitBeginMsg {
-    nx_uint8_t bufferSize;
-  } TransmitBeginMsg;
-
-  typedef nx_struct PartialDataMsg {
-    nx_uint8_t size;
-    nx_uint8_t data[49];
-  } PartialDataMsg;
-
-  typedef nx_struct {
-    nx_uint8_t temp;
-  } EndOfFileMsg;
   
   message_t packet;
   uint8_t currentRetry = 0;
@@ -66,12 +56,14 @@ implementation{
     PartialDataMsg* msg = (PartialDataMsg*)prepareMsg(sizeof(PartialDataMsg));
     uint8_t i;
     
-    msg->size = size;
+    msg->seqNo = 10;
+    msg->flags = 1;
+    msg->dataSize = size;
     for (i = 0; i < size; i++) {
       msg->data[i] = data[i];
     }
     
-    if (call SerialSend.send[AM_PARTIAL_DATA_MSG](AM_BROADCAST_ADDR, &packet, sizeof(PartialDataMsg)) == SUCCESS) {
+    if (call SerialSend.send[AM_MSG_PARTIAL_DATA](AM_BROADCAST_ADDR, &packet, sizeof(PartialDataMsg)) == SUCCESS) {
       atomic {
         state = STATE_SENDING_PARTIAL_DATA;
       }
@@ -81,7 +73,7 @@ implementation{
   }
   
   void sendPartialDataMessage(message_t *msg, uint8_t msgSize) {
-    if (call SerialSend.send[AM_PARTIAL_DATA_MSG](AM_BROADCAST_ADDR, msg, msgSize) == SUCCESS) {
+    if (call SerialSend.send[AM_MSG_PARTIAL_DATA](AM_BROADCAST_ADDR, msg, msgSize) == SUCCESS) {
       atomic {
         state = STATE_SENDING_PARTIAL_DATA;
       }
@@ -93,9 +85,9 @@ implementation{
   
   void sendEOFMessage() {
     EndOfFileMsg* msg = (EndOfFileMsg*)prepareMsg(sizeof(EndOfFileMsg));
-    msg->temp = 1; // TODO: Fix this by sending something meaningful
+    msg->name = 1; // TODO: Fix this by sending something meaningful
     
-    if (call SerialSend.send[AM_TRANSMIT_END_MSG](AM_BROADCAST_ADDR, &packet, sizeof(EndOfFileMsg)) == SUCCESS) {
+    if (call SerialSend.send[AM_MSG_EOF](AM_BROADCAST_ADDR, &packet, sizeof(EndOfFileMsg)) == SUCCESS) {
       atomic {
         state = STATE_SENDING_PARTIAL_DATA;
       }
@@ -104,16 +96,16 @@ implementation{
     }
   }
   
-  task void sendTransmitBeginMsg() {
-    TransmitBeginMsg* msg = (TransmitBeginMsg*)prepareMsg(sizeof(TransmitBeginMsg));
-    msg->bufferSize = 53; // TODO: Fix this by sending something meaningful
+  task void sendBeginFileMsg() {
+    BeginFileMsg* msg = (BeginFileMsg*)prepareMsg(sizeof(BeginFileMsg));
+    msg->type = 0; // TODO: Fix this by sending something meaningful
     
-    if (call SerialSend.send[AM_TRANSMIT_BEGIN_MSG](AM_BROADCAST_ADDR, &packet, sizeof(TransmitBeginMsg)) == SUCCESS) {
+    if (call SerialSend.send[AM_MSG_BEGIN_FILE](AM_BROADCAST_ADDR, &packet, sizeof(BeginFileMsg)) == SUCCESS) {
       atomic {
         state = STATE_SENDING_START_REQUEST;
       }
     } else {
-      post sendTransmitBeginMsg();
+      signal PCFileSender.error(PFS_ERR_SEND_FAILED);
     }
   }
   
@@ -121,7 +113,7 @@ implementation{
     atomic {
         currentRetry += 1;
     }
-    post sendTransmitBeginMsg();
+    post sendBeginFileMsg();
   }
 
   command void PCFileSender.init(){
@@ -213,7 +205,7 @@ implementation{
     atomic {
       if (state == STATE_WAITING_START_RESPONSE) {
         
-        if (msg_type == AM_TRANSMIT_BEGIN_ACK_MSG) {
+        if (msg_type == AM_MSG_BEGIN_FILE_ACK) {
           // We have received an ACK for the TransmitBegin message.
           // This means that we have established a connection to 
           // the PC.
