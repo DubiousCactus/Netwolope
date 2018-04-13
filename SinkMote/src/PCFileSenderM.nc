@@ -28,10 +28,10 @@ implementation{
   } ConnectionState;
   
   enum {
-    AM_TRANSMIT_BEGIN_MSG = 0x40,
-    AM_TRANSMIT_BEGIN_ACK_MSG = 0x41,
-    AM_PARTIAL_DATA_MSG = 0x42,
-    AM_TRANSMIT_END_MSG = 0x43
+    AM_TRANSMIT_BEGIN_MSG = 64,
+    AM_TRANSMIT_BEGIN_ACK_MSG = 65,
+    AM_PARTIAL_DATA_MSG = 66,
+    AM_TRANSMIT_END_MSG = 67
   };
 
   typedef nx_struct TransmitBeginMsg {
@@ -51,41 +51,19 @@ implementation{
   uint8_t currentRetry = 0;
   ConnectionState state = STATE_BEGIN;
   
-  TransmitBeginMsg* prepareTransmitBeginMsg() {
-    TransmitBeginMsg* msg = (TransmitBeginMsg*)call SerialPacket.getPayload(&packet, sizeof(TransmitBeginMsg));
+  void* prepareMsg(uint8_t msgSize) {
+    void* msg = call SerialPacket.getPayload(&packet, msgSize);
     if (msg == NULL) {
-      signal PCFileSender.error(PC_CONN_UNEXPECTED_ERROR);
+      signal PCFileSender.error(PFS_ERR_MSG_PREPARATION_FAILED);
     }
-    if (call SerialPacket.maxPayloadLength() < sizeof(TransmitBeginMsg)) {
-      signal PCFileSender.error(PC_CONN_UNEXPECTED_ERROR);
+    if (call SerialPacket.maxPayloadLength() < msgSize) {
+      signal PCFileSender.error(PFS_ERR_MSG_PREPARATION_FAILED);
     }
-    return msg;
-  }
-  
-  PartialDataMsg* preparePartialDataMsg() {
-    PartialDataMsg* msg = (PartialDataMsg*)call SerialPacket.getPayload(&packet, sizeof(PartialDataMsg));
-    if (msg == NULL) {
-      signal PCFileSender.error(PC_CONN_UNEXPECTED_ERROR);
-    }
-    if (call SerialPacket.maxPayloadLength() < sizeof(PartialDataMsg)) {
-      signal PCFileSender.error(PC_CONN_UNEXPECTED_ERROR);
-    }
-    return msg;
-  }
-  
-  EndOfFileMsg* prepareEndOfFileMsg() {
-    EndOfFileMsg* msg = (EndOfFileMsg*)call SerialPacket.getPayload(&packet, sizeof(EndOfFileMsg));
-    if (msg == NULL) {
-      signal PCFileSender.error(PC_CONN_UNEXPECTED_ERROR);
-    }
-    if (call SerialPacket.maxPayloadLength() < sizeof(EndOfFileMsg)) {
-      signal PCFileSender.error(PC_CONN_UNEXPECTED_ERROR);
-    }
-    return msg;
+    return msg;    
   }
   
   void sendPartialData(uint8_t *data, uint8_t size) {
-    PartialDataMsg* msg = preparePartialDataMsg();
+    PartialDataMsg* msg = (PartialDataMsg*)prepareMsg(sizeof(PartialDataMsg));
     uint8_t i;
     
     msg->size = size;
@@ -98,7 +76,7 @@ implementation{
         state = STATE_SENDING_PARTIAL_DATA;
       }
     } else {
-      signal PCFileSender.error(PC_CONN_ERR_DISCONNECTED);
+      signal PCFileSender.error(PFS_ERR_SEND_FAILED);
     }
   }
   
@@ -108,13 +86,13 @@ implementation{
         state = STATE_SENDING_PARTIAL_DATA;
       }
     } else {
-      signal PCFileSender.error(PC_CONN_ERR_DISCONNECTED);
+      signal PCFileSender.error(PFS_ERR_SEND_FAILED);
     }
     
   }
   
   void sendEOFMessage() {
-    EndOfFileMsg* msg = prepareEndOfFileMsg();
+    EndOfFileMsg* msg = (EndOfFileMsg*)prepareMsg(sizeof(EndOfFileMsg));
     msg->temp = 1; // TODO: Fix this by sending something meaningful
     
     if (call SerialSend.send[AM_TRANSMIT_END_MSG](AM_BROADCAST_ADDR, &packet, sizeof(EndOfFileMsg)) == SUCCESS) {
@@ -122,12 +100,12 @@ implementation{
         state = STATE_SENDING_PARTIAL_DATA;
       }
     } else {
-      signal PCFileSender.error(PC_CONN_ERR_DISCONNECTED);
+      signal PCFileSender.error(PFS_ERR_SEND_FAILED);
     }
   }
   
   task void sendTransmitBeginMsg() {
-    TransmitBeginMsg* msg = prepareTransmitBeginMsg();
+    TransmitBeginMsg* msg = (TransmitBeginMsg*)prepareMsg(sizeof(TransmitBeginMsg));
     msg->bufferSize = 53; // TODO: Fix this by sending something meaningful
     
     if (call SerialSend.send[AM_TRANSMIT_BEGIN_MSG](AM_BROADCAST_ADDR, &packet, sizeof(TransmitBeginMsg)) == SUCCESS) {
@@ -149,6 +127,36 @@ implementation{
   command void PCFileSender.init(){
     call SerialControl.start();
   }
+
+  command void PCFileSender.send(uint8_t *data, uint8_t size){
+    atomic {
+      if (state == STATE_ESTABLISHED) {
+        sendPartialData(data, size);
+      } else {
+        signal PCFileSender.error(PFS_ERR_NOT_CONNECTED);
+      }
+    }
+  }
+
+  command void PCFileSender.sendMessage(message_t *message, uint8_t payloadSize){
+    atomic {
+      if (state == STATE_ESTABLISHED) {
+        sendPartialDataMessage(message, payloadSize);
+      } else {
+        signal PCFileSender.error(PFS_ERR_NOT_CONNECTED);
+      }
+    }
+  }
+
+  command void PCFileSender.sendEOF(){
+    atomic {
+      if (state == STATE_ESTABLISHED) {
+        sendEOFMessage();
+      } else {
+        signal PCFileSender.error(PFS_ERR_NOT_CONNECTED);
+      }
+    }
+  }
   
   /* REGION: Event handlers */
 
@@ -156,7 +164,7 @@ implementation{
     if (error == SUCCESS) {
       post startCommunicationTask();
     } else {
-      signal PCFileSender.error(PC_CONN_UNEXPECTED_ERROR);
+      signal PCFileSender.error(PFS_ERR_SEND_FAILED);
     }
   }
 
@@ -197,7 +205,7 @@ implementation{
         }
       }
     } else {
-      signal PCFileSender.error(PC_CONN_UNEXPECTED_ERROR);
+      signal PCFileSender.error(PFS_ERR_SEND_FAILED);
     }
   }
 
@@ -217,35 +225,5 @@ implementation{
       }
     }
     return msg;
-  }
-
-  command void PCFileSender.send(uint8_t *data, uint8_t size){
-    atomic {
-      if (state == STATE_ESTABLISHED) {
-        sendPartialData(data, size);
-      } else {
-        signal PCFileSender.error(PC_CONN_NOT_CONNECTED);
-      }
-    }
-  }
-
-  command void PCFileSender.sendMessage(message_t *message, uint8_t payloadSize){
-    atomic {
-      if (state == STATE_ESTABLISHED) {
-        sendPartialDataMessage(message, payloadSize);
-      } else {
-        signal PCFileSender.error(PC_CONN_NOT_CONNECTED);
-      }
-    }
-  }
-
-  command void PCFileSender.sendEOF(){
-    atomic {
-      if (state == STATE_ESTABLISHED) {
-        sendEOFMessage();
-      } else {
-        signal PCFileSender.error(PC_CONN_NOT_CONNECTED);
-      }
-    }
   }
 }

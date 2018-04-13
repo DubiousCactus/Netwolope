@@ -57,4 +57,4 @@ else
   include $(MAKERULES)
 endif
 
-CFLAGS += -DTOSH_DATA_LENGTH=50
+CFLAGS += -DTOSH_DATA_LENGTH=64

@@ -1,24 +1,3 @@
-/**
- * This component forwards data received on the radio to UART.  
- * 
- * <p>This component works as a one-way base station i.e., it forwards
- * data received by the CompressorMote to the PC. We assume that the PC 
- * sits on the serial link. On the radio link, we have the 
- * ComprossorMote.</p> 
- * 
- * <p>The LEDs are programmed as follows:</p>
- * <ul>
- *   <li><strong>Red LED</strong> is turned on if the buffer is 
- *   full</li>
- *   <li><strong>Green LED</strong> is turned on when the first bytes
- *   is received over the radio</li>
- * </ul>
- * 
- * @author Omar Ali Sheikh
- * @date 19 March 2018
- */
- 
-
 #include "AM.h"
 #include "Serial.h"
 #include "PCFileSender.h"
@@ -36,7 +15,7 @@ module SinkMoteM @safe() {
 implementation{
   enum {
     MSG_QUEUE_CAPACITY = 10,
-    PAYLOAD_CAPACITY = 50
+    PAYLOAD_CAPACITY = 64
   };
   
   typedef nx_struct {
@@ -59,7 +38,7 @@ implementation{
   }
 
   event void Boot.booted(){
-    uint16_t i, j, counter;
+    uint8_t i, j, counter = 0;
     
     isEOFBeingSent = FALSE;
     
