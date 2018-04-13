@@ -1,0 +1,3 @@
+COMPONENT=Program
+include $(MAKERULES)
+
