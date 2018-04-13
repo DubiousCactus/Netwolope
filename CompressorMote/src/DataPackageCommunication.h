@@ -3,12 +3,13 @@
 enum {
 	DATA_SIZE = 10,
 	TIMEOUT = 30000,
-	TIMER_PERIOD_MILLI = 1000
+	TIMER_PERIOD_MILLI = 1000,
+	COMMUNICATION_ADDRESS = 6
  };
  typedef nx_struct DataPackage {
     nx_uint16_t sequenceNumber;
-	nx_bool last;
-	nx_bool request;
+	nx_uint8_t last;
+	nx_uint8_t request;
 	nx_uint8_t dataSize;
 	nx_uint8_t data[DATA_SIZE];
 } DataPackage;

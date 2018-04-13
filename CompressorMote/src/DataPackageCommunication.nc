@@ -15,17 +15,7 @@ implementation{
 	nx_uint8_t tracker[DATA_SIZE]; //Used for the receiver to track received packages.
 	bool busy = FALSE;
     message_t pkt;
-    //nx_uint8_t data[DATA_SIZE] = {0,0,0,0,0,0,0,0,0,0};
     bool SENDER = TRUE;
-    
-	/* requestDataOnId : 
-	 * id: id for the requested image part
-	 * Returns a part of the image, id corresponds to the index of the part.
-	 * Meaning, id will determine what part of the image to return, since the image is split into multiple compressed parts in order to be stored on the telosB. */
-	
-	/*void requestDataOnId(int id){
-		data[1] = 30;
-	}*/
 	
 	void flipTacker(nx_uint8_t* A){
 		int i;
@@ -73,41 +63,42 @@ implementation{
      	call Leds.led0Off();
      	call Leds.led1Off();
      	call Leds.led2Off();
-     	for(i = 0; i < TIMEOUT;i++){}i=0;
+     	for(i = 0; i < TIMEOUT;i++){}
+     	i=0;
 		switch(led){
 			case 0:
 				call Leds.led0Toggle();
-				for(i = 0; i < TIMEOUT;i++)
+				for(i = 0; i < TIMEOUT;i++){}
 				call Leds.led0Toggle();
 				break;
 			case 1:
 				call Leds.led1Toggle();
-				for(i = 0; i < TIMEOUT;i++)
+				for(i = 0; i < TIMEOUT;i++){}
 				call Leds.led1Toggle();
 				break;
 			case 2:
 				call Leds.led2Toggle();
-				for(i = 0; i < TIMEOUT;i++)
+				for(i = 0; i < TIMEOUT;i++){}
 				call Leds.led2Toggle();
 				break;
 			case 3:
 				call Leds.led0Toggle();
 				call Leds.led1Toggle();
-				for(i = 0; i < TIMEOUT;i++)
+				for(i = 0; i < TIMEOUT;i++){}
 				call Leds.led1Toggle();
 				call Leds.led0Toggle();
 				break;
 			case 4:
 				call Leds.led0Toggle();
 				call Leds.led2Toggle();
-				for(i = 0; i < TIMEOUT;i++)
+				for(i = 0; i < TIMEOUT;i++){}
 				call Leds.led2Toggle();
 				call Leds.led0Toggle();
 				break;
 			case 5:
 				call Leds.led1Toggle();
 				call Leds.led2Toggle();
-				for(i = 0; i < TIMEOUT;i++)
+				for(i = 0; i < TIMEOUT;i++){}
 				call Leds.led2Toggle();
 				call Leds.led1Toggle();
 				break;
@@ -115,7 +106,7 @@ implementation{
 				call Leds.led0Toggle();
 				call Leds.led1Toggle();
 				call Leds.led2Toggle();
-				for(i = 0; i < TIMEOUT;i++)
+				for(i = 0; i < TIMEOUT;i++){}
 				call Leds.led2Toggle();
 				call Leds.led1Toggle();
 				call Leds.led0Toggle();
@@ -124,7 +115,8 @@ implementation{
      	call Leds.led0Off();
      	call Leds.led1Off();
      	call Leds.led2Off();
-     	for(i = 0; i < TIMEOUT;i++){}i=0;
+     	for(i = 0; i < TIMEOUT;i++){}
+     	i=0;
 	}
 	
 	/*
@@ -143,7 +135,8 @@ implementation{
      * last: Tells the receiver that this is the last part to be send (unless the receives request a previous part.)
      * request: Tells the Sender that a part is missing.
      * This task will send a DataPackage struct, in case of a request for a part the data element will be empty.*/
-    void sendOptionPackage(nx_bool *last, nx_bool* request, nx_uint8_t * data, nx_uint8_t size){
+     
+    void sendOptionPackage(nx_uint8_t last, nx_uint8_t request, nx_uint8_t * data, nx_uint8_t size){
     	if (!busy) {
 	    	DataPackage* DP = (DataPackage*)(call Packet.getPayload(&pkt, sizeof (DataPackage)));
 			currentSequenceNumber = findMissingPackage();
@@ -169,33 +162,7 @@ implementation{
 		    }
 	    }
 	}
-	
-	/*sendToPC:
-	 * Will send the data d to the computer for it to decompress and make the image.*/
-	void sendToPC(nx_uint8_t* d){
-		
-	}
-	
-	/*void start(bool IsSender){
-		SENDER = IsSender;
-		//call Timer0.startPeriodic(TIMER_PERIOD_MILLI);
-     	call AMControl.start();
-	}*/
-   /*event void Boot.booted() {
-     call Timer0.startPeriodic(TIMER_PERIOD_MILLI);
-     call AMControl.start();
-   }*/
 
-/*
-   event void Timer0.fired() {
-   	if(TOS_NODE_ID == 1){
-   		sendOptionPackage(0,0);
-   		SENDER = TRUE;
-   	}else{
-   		SENDER = FALSE;
-   	}
-   }
-*/
 	event void AMSend.sendDone(message_t *msg, error_t error){
 		if (&pkt == msg) {
 		  if(SENDER){
@@ -231,14 +198,15 @@ implementation{
 	}
 	
 	void receivePackage(DataPackage* package){
-		//signal IDataPackageCommunication.receivedData(package->data, package->dataSize);
-		sendToPC(package->data);
+		signal IDataPackageCommunication.receivedData(package->data, package->dataSize);
+		//sendToPC(package->data);
 		blink(package->sequenceNumber%7);
 		tracker[package->sequenceNumber] = 1;
 	}
 	
 	event message_t * Receive.receive(message_t *msg, void *payload, uint8_t len){
 			if (len == sizeof(DataPackage)) {
+				//blink(0);
 		    	DataPackage* package = (DataPackage*)payload;
 		    	if(package->request == 1 && SENDER){
 		    		receiveRequest(package);
@@ -254,8 +222,8 @@ implementation{
 		}
 
 
-	command void IDataPackageCommunication.send(u_int8_t last, u_int8_t request, nx_uint8_t * data, nx_uint8_t size){
-		sendOptionPackage(last==1,request==1,data,size);
+	command void IDataPackageCommunication.send(nx_uint8_t last, nx_uint8_t request, nx_uint8_t * data, nx_uint8_t size){
+		sendOptionPackage(last, request, data, size);
 	}
 	
 	void setTracker(){
@@ -268,7 +236,7 @@ implementation{
 	command void IDataPackageCommunication.start(u_int8_t isSender){
 		setTracker();
 		if(isSender){
-			SENDER == TRUE;
+			SENDER = TRUE;
 		}
      	call AMControl.start();
      }
