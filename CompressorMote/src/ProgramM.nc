@@ -49,10 +49,11 @@ implementation{
   
   event void RadioSender.readyToSend(){
     call PCFileReceiver.init();
+    call Leds.led1Toggle();
   }
   
   event void PCFileReceiver.initDone(){ 
-     
+     call Leds.led1On();
   }
   
   event void PCFileReceiver.fileBegin(uint32_t totalLength){
@@ -65,7 +66,6 @@ implementation{
   
   event void PCFileReceiver.fileEnd(){
     call Compressor.fileEnd();
-    call Leds.led1On();
   }
   
   event void Compressor.compressed(uint8_t *compressedData, uint16_t length){
@@ -79,6 +79,7 @@ implementation{
   }
 
   event void RadioSender.sendDone(){
+    call Leds.led2Toggle();
     if (sendIndex < dataToSendLength) {
       post sendNextPacketOverRadio();
     } else {
