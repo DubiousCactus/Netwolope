@@ -2,10 +2,10 @@ module ProgramM{
   uses {
     interface Boot;
     interface Leds;
-    interface Timer<TMilli> as Timer;
     interface PCFileReceiver;
     interface OnlineCompressionAlgorithm as Compressor;
     interface RadioSender;
+    interface ErrorIndicator;
   }
 }
 implementation{
@@ -88,12 +88,23 @@ implementation{
   }
 
   event void PCFileReceiver.error(PCFileSenderError error){
-    call Leds.led0On();
+    switch (error) {
+      case PCC_ERR_PACKET_DROPPED:
+        call ErrorIndicator.blinkRed(3);
+        break;
+      case PCC_ERR_SEND_FAILED:
+        call ErrorIndicator.blinkRed(4);
+        break;
+      case PCC_ERR_SERIAL_INIT_FAILED:
+        call ErrorIndicator.blinkRed(5);
+        break;
+      case PCC_ERR_PROGRAMMER:
+        call ErrorIndicator.blinkRed(6);
+        break;
+    }
   }
   
   event void Compressor.error(CompressionError error){
     call Leds.led0On();
   }
-
-  event void Timer.fired(){ }
 }

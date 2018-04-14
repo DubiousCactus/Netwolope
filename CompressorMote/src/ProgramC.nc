@@ -17,6 +17,7 @@ implementation{
   components PCFileReceiverM;
   components RadioSenderM;
   components NoCompressionM;
+  components ErrorIndicatorM;
 //  components FlashStorageM;
 
 
@@ -36,12 +37,15 @@ implementation{
   RadioSenderM.Receive -> AMReceiver;
   RadioSenderM.AMControl -> Radio;
 //  RadioSenderM.Leds -> LedsC;
+
+  ErrorIndicatorM.BlinkTimer -> Timer0;
+  ErrorIndicatorM.Leds -> LedsC;
   
   ProgramM.Boot -> MainC;
   ProgramM.Leds -> LedsC;
-  ProgramM.Timer -> Timer0;
   ProgramM.RadioSender -> RadioSenderM;
   ProgramM.PCFileReceiver -> PCFileReceiverM;
   ProgramM.Compressor -> NoCompressionM;
+  ProgramM.ErrorIndicator -> ErrorIndicatorM;
 //  ProgramM.FlashStorage -> FlashStorageM;
 }
