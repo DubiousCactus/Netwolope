@@ -15,33 +15,33 @@ implementation{
   components new BlockStorageC(VOLUME_BLOCKTEST) as BlockStorage;
   components new TimerMilliC() as Timer0;
   components PCFileReceiverM;
-  components DataPackageCommunication;
-  
-//
-//  components PCFileReceiverM;
+  components RadioSenderM;
+  components NoCompressionM;
 //  components FlashStorageM;
-//
+
+
   PCFileReceiverM.SerialControl -> Serial;
   PCFileReceiverM.SerialPacket -> Serial;
   PCFileReceiverM.SerialAMPacket -> Serial;
   PCFileReceiverM.SerialSend -> Serial.AMSend;
   PCFileReceiverM.SerialReceive -> Serial.Receive;
-//
+
 //  FlashStorageM.BlockRead -> BlockStorage;
 //  FlashStorageM.BlockWrite -> BlockStorage;
 //  FlashStorageM.Leds -> LedsC;
 
-  DataPackageCommunication.Packet -> AMSender;
-  DataPackageCommunication.AMPacket -> AMSender;
-  DataPackageCommunication.AMSend -> AMSender;
-  DataPackageCommunication.Receive -> AMReceiver;
-  DataPackageCommunication.AMControl -> Radio;
-  DataPackageCommunication.Leds -> LedsC;
+  RadioSenderM.Packet -> AMSender;
+  RadioSenderM.AMPacket -> AMSender;
+  RadioSenderM.AMSend -> AMSender;
+  RadioSenderM.Receive -> AMReceiver;
+  RadioSenderM.AMControl -> Radio;
+//  RadioSenderM.Leds -> LedsC;
   
   ProgramM.Boot -> MainC;
   ProgramM.Leds -> LedsC;
   ProgramM.Timer -> Timer0;
-  ProgramM.RadioSender -> DataPackageCommunication;
+  ProgramM.RadioSender -> RadioSenderM;
   ProgramM.PCFileReceiver -> PCFileReceiverM;
+  ProgramM.Compressor -> NoCompressionM;
 //  ProgramM.FlashStorage -> FlashStorageM;
 }
