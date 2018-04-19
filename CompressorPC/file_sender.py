@@ -52,23 +52,23 @@ class MoteFileSender:
     self.am = tos.AM()
 
   def send_message(self, msg, msg_type, ack_type, num_retries = 10):
-    sleep(1)
+    #sleep(1)
     counter = 0
     while True:
       self.am.write(msg, msg_type)
       resp = self.am.read(timeout=5)
       if resp:
         if resp.type == ack_type:
-          print '\n [*] Received expected acknowledgement: ', resp
+          print ' [*] Received expected acknowledgement: ', resp
           return
         else:
-          print '\n [!] Received unexpected packet', resp
+          print ' [!] Received unexpected packet', resp
           exit(1)
       else:
-        print '\n [!] Read timeout'
+        print ' [!] Read timeout'
       counter += 1
       if counter >= num_retries:
-        print '\n [!] Retried %s times. Giving up...' % num_retries
+        print ' [!] Retried %s times. Giving up...' % num_retries
         exit(1)
 
   def send_begin_file(self):
@@ -83,14 +83,17 @@ class MoteFileSender:
     f = open(self.file_name, 'rb')
     self.data_bytes = bytearray(f.read())
     f.close()
+    counter = 1
     i = 0
     while i < len(self.data_bytes):
       bytes_to_send = self.data_bytes[i: i+PACKET_CAPACITY]
+      print(' [*] Sending packet #%s' % counter)
       self.send_next_packet(bytes_to_send)
       i = i + len(bytes_to_send)
+      counter += 1
 
   def send_eof(self):
-    print '\n [*] Sending EOF'
+    print ' [*] Sending EOF'
     msg = EndOfFileMsg((self.file_size, ))
     self.send_message(msg, AM_MSG_EOF, AM_MSG_ACK_END_TRANSMIT)
 
