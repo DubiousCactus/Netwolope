@@ -14,6 +14,14 @@ implementation{
   bool busy = FALSE;
   message_t pkt;
   
+  uint32_t setBit(uint32_t bitMask, uint8_t position) {
+    return bitMask | (1 << position);
+  }
+
+  uint8_t getBit(uint32_t bitMask, uint8_t position) {
+    return (uint8_t)(bitMask & (1 << position)) >> position;
+  }
+
   void flipTacker(nx_uint8_t* A){
    int i;
    for(i = 0; i < DATA_SIZE;i++){
