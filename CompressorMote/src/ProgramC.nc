@@ -17,6 +17,7 @@ implementation{
   components PCFileReceiverM;
   components RadioSenderM;
   components NoCompressionM;
+  components RossCompressionM;
   components ErrorIndicatorM;
 //  components FlashStorageM;
 
@@ -45,7 +46,7 @@ implementation{
   ProgramM.Leds -> LedsC;
   ProgramM.RadioSender -> RadioSenderM;
   ProgramM.PCFileReceiver -> PCFileReceiverM;
-  ProgramM.Compressor -> NoCompressionM;
+  ProgramM.Compressor -> RossCompressionM;
   ProgramM.ErrorIndicator -> ErrorIndicatorM;
 //  ProgramM.FlashStorage -> FlashStorageM;
 }

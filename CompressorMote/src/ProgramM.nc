@@ -47,7 +47,7 @@ implementation{
   }
   
   event void Compressor.initDone(){
-    call RadioSender.start();
+    /*call RadioSender.start();*/
   }
   
   event void RadioSender.readyToSend(){
@@ -78,11 +78,13 @@ implementation{
       sendIndex = 0;
     }
     
-    post sendNextPacketOverRadio();
+    /* Send over serial */
+
+    /*post sendNextPacketOverRadio();*/
   }
   
   event void Compressor.compressDone(){
-    call RadioSender.send(1, 0, temp, 0);
+    /*call RadioSender.send(1, 0, temp, 0);*/
   }
 
   event void RadioSender.sendDone(){

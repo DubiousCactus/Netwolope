@@ -24,7 +24,7 @@ module RossCompressionM {
 	 */
 	command void OnlineCompressionAlgorithm.compress(uint8_t *data, uint16_t length) {
 	
-		uint8_t *outbuff;	
+		uint8_t *outbuff = NULL;	
 		uint8_t *in_idx = data;
 		uint8_t *data_end = data + length;
 		uint8_t *anchor;
@@ -34,7 +34,7 @@ module RossCompressionM {
 		uint16_t c;
 		uint16_t hash;
 		uint16_t *ctrl_idx = (uint16_t *) outbuff;
-		uint16_t ctrl_bits;
+		uint16_t ctrl_bits = 0;
 		uint16_t ctrl_cnt = 0;
 		uint8_t *out_idx = outbuff + sizeof(uint16_t);
 		uint8_t *outbuff_end = outbuff + (length - 48);
@@ -62,7 +62,7 @@ module RossCompressionM {
 
 				if (out_idx > outbuff_end) {
 					memcpy(outbuff, data, length);
-					signal OnlineCompressionAlgorithm.error("Output buffer overflowed!");
+					signal OnlineCompressionAlgorithm.error(OCA_ERR_BUFFER_OVERFLOW);
 				}
 			}
 
@@ -82,7 +82,7 @@ module RossCompressionM {
 					*out_idx++ = c;
 				} else { /* long rle */
 					cnt -= 19;
-					*out_idx++ = 16 + (cnt & 00F);
+					*out_idx++ = 16 + (cnt & 0x00F);
 					*out_idx++ = cnt >> 4;
 					*out_idx++ = c;
 				}
@@ -124,7 +124,7 @@ module RossCompressionM {
 							*out_idx++ = cnt - 16;
 						}
 
-						ctrl_bits = (ctrl bits << 1) | 1;
+						ctrl_bits = (ctrl_bits << 1) | 1;
 
 						continue;
 					}
@@ -139,7 +139,7 @@ module RossCompressionM {
 
 		/* save last load of control bits */
 		ctrl_bits <<= (16 - ctrl_cnt);
-		*ctrl_idx = ctrl_ bits;
+		*ctrl_idx = ctrl_bits;
 
 		/* and return size of compressed buffer */
 		signal OnlineCompressionAlgorithm.compressed(outbuff, out_idx - outbuff);
