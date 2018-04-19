@@ -1,9 +1,14 @@
 #include "OnlineCompressionAlgorithm.h"
 
+#define HASH_LEN  4096    /* # hash table entries */
+
 module RossCompressionM {
 	provides interface OnlineCompressionAlgorithm;
 } implementation {
 
+	uint8_t *hash_tbl[HASH_LEN];        /* hash table */
+	uint16_t hash_len = HASH_LEN;
+	
 	command void OnlineCompressionAlgorithm.init() {
 		signal OnlineCompressionAlgorithm.initDone();
 	}
