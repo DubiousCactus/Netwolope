@@ -16,11 +16,12 @@ implementation{
   components new TimerMilliC() as Timer0;
   components PCFileReceiverM;
   components RadioSenderM;
-  components NoCompressionM;
+  //components NoCompressionM;
+  components blocktruncationM;
   components ErrorIndicatorM;
 //  components FlashStorageM;
 
-
+  blocktruncationM.Leds -> LedsC;
   PCFileReceiverM.SerialControl -> Serial;
   PCFileReceiverM.SerialPacket -> Serial;
   PCFileReceiverM.SerialAMPacket -> Serial;
@@ -45,7 +46,7 @@ implementation{
   ProgramM.Leds -> LedsC;
   ProgramM.RadioSender -> RadioSenderM;
   ProgramM.PCFileReceiver -> PCFileReceiverM;
-  ProgramM.Compressor -> NoCompressionM;
+  ProgramM.Compressor -> blocktruncationM;
   ProgramM.ErrorIndicator -> ErrorIndicatorM;
 //  ProgramM.FlashStorage -> FlashStorageM;
 }

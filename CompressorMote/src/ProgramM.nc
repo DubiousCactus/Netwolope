@@ -1,3 +1,4 @@
+
 module ProgramM{
   uses {
     interface Boot;
@@ -18,6 +19,7 @@ implementation{
   uint16_t dataToSendLength;
   uint16_t sendIndex;
   uint16_t newSendIndex;
+  uint8_t buffer[] = {1,2,3,4,5,6};
   
   task void sendNextPacketOverRadio() {
     uint8_t bufferSize;
@@ -43,7 +45,8 @@ implementation{
   event void Boot.booted(){
     dataToSendLength = 0;
     sendIndex = 0;
-    call Compressor.init();
+    call Compressor.compress(buffer, 6);
+    //call Compressor.init();
   }
   
   event void Compressor.initDone(){
