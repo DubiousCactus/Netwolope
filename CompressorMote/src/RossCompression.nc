@@ -42,7 +42,7 @@ module RossCompressionM {
 		/* skip the compression for a small buffer */
 		if (length <= 18) {
 			memcpy(outbuff, data, length);
-			return 0 - length;
+			signal OnlineCompressionAlgorithm.compressed(outbuff, 0 - length);
 		}
 
 		/* adjust # hash entries so hash algorithm can
@@ -54,7 +54,6 @@ module RossCompressionM {
 		{
 			/* make room for the control bits
 			and check for outbuff overflow */
-
 			if (ctrl_cnt++ == 16) {
 				*ctrl_idx = ctrl_bits;
 				ctrl_cnt = 1;
@@ -63,7 +62,7 @@ module RossCompressionM {
 
 				if (out_idx > outbuff_end) {
 					memcpy(outbuff, data, length);
-					return 0 - length;
+					signal OnlineCompressionAlgorithm.error("Output buffer overflowed!");
 				}
 			}
 
