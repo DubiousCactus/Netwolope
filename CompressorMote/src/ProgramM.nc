@@ -30,6 +30,7 @@ implementation{
       } else {
         bufferSize = RADIO_DATA_CAPACITY;
       }
+      call Leds.led2Off();
       call RadioSender.send(0, 0, &(dataToSend[sendIndex]), bufferSize);
       sendIndex += bufferSize;
     }
@@ -79,7 +80,7 @@ implementation{
   }
 
   event void RadioSender.sendDone(){
-    call Leds.led2Toggle();
+    call Leds.led2On();
     if (sendIndex < dataToSendLength) {
       post sendNextPacketOverRadio();
     } else {
@@ -87,21 +88,8 @@ implementation{
     }
   }
 
-  event void PCFileReceiver.error(PCFileSenderError error){
-    switch (error) {
-      case PCC_ERR_PACKET_DROPPED:
-        call ErrorIndicator.blinkRed(3);
-        break;
-      case PCC_ERR_SEND_FAILED:
-        call ErrorIndicator.blinkRed(4);
-        break;
-      case PCC_ERR_SERIAL_INIT_FAILED:
-        call ErrorIndicator.blinkRed(5);
-        break;
-      case PCC_ERR_PROGRAMMER:
-        call ErrorIndicator.blinkRed(6);
-        break;
-    }
+  event void PCFileReceiver.error(PCFileReceiverError error){
+    call ErrorIndicator.blinkRed(error);
   }
   
   event void Compressor.error(CompressionError error){

@@ -7,7 +7,7 @@ interface PCFileReceiver{
   
   event void initDone();
   
-  event void error(PCFileSenderError error);
+  event void error(PCFileReceiverError error);
   
   event void fileBegin(uint32_t totalLength);
   

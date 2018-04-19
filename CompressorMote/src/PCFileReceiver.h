@@ -1,27 +1,33 @@
-#ifndef PCFILE_SENDER_H
-#define PCFILE_SENDER_H
+#ifndef PCFILE_RECEIVER_H
+#define PCFILE_RECEIVER_H
 
 typedef enum {
+  /**
+   * Expected call a call to <code>.receiveMore</code>
+   * but did not received
+   */
+  PFR_ERR_EXPECTED_RECEIVE_MORE = 2,
+  
   /**
    * Indicates a programmer error. This error should
    * not happen.
    */
-  PCC_ERR_PROGRAMMER = 20,
+  PFR_ERR_PROGRAMMER,
   
   /**
    * Initialisation of the serial interface failed.
    */
-  PCC_ERR_SERIAL_INIT_FAILED,
+  PFR_ERR_SERIAL_INIT_FAILED,
   
   /**
    * Sending data to the PC failed.
    */
-  PCC_ERR_SEND_FAILED,
+  PFR_ERR_SEND_FAILED,
   
   /**
    * Packet received from the PC is dropped.
    */
-  PCC_ERR_PACKET_DROPPED
-} PCFileSenderError;
+  PFR_ERR_PACKET_DROPPED
+} PCFileReceiverError;
 
-#endif /* PCFILE_SENDER_H */
+#endif /* PCFILE_RECEIVER_H */

@@ -14,7 +14,7 @@ module PCFileReceiverM{
 }
 implementation{
   typedef enum {
-    STATE_INIT,
+    STATE_INIT = 1,
     STATE_SENDING_ACK,
     STATE_READY_TO_RECEIVE_DATA,
     STATE_PROCESSING,
@@ -62,7 +62,7 @@ implementation{
   };
   
   enum {
-    BUFFER_CAPACITY = 64,
+    BUFFER_CAPACITY = 100,
     PACKET_CAPACITY = 64
   } Constants;
   
@@ -86,6 +86,7 @@ implementation{
   uint8_t buffer[BUFFER_CAPACITY];
   uint16_t bufferIndex = 0;
   uint8_t lastReceivedPayloadLength = 0;
+  bool waitingForReceiveMoreCommand = FALSE;
   
   /**
    * Sends an acknowledge packet to the PC.
@@ -101,7 +102,7 @@ implementation{
         state = STATE_SENDING_ACK;
       }
     } else {
-      signal PCFileReceiver.error(PCC_ERR_SEND_FAILED);
+      signal PCFileReceiver.error(PFR_ERR_SEND_FAILED);
     }
   }
 
@@ -131,6 +132,7 @@ implementation{
     
       if (bufferIndex + PACKET_CAPACITY > BUFFER_CAPACITY) {
         lastReceivedPayloadLength = len;
+        waitingForReceiveMoreCommand = TRUE;
         signal PCFileReceiver.receivedData(buffer, bufferIndex);
       } else {
         sendAckMsg(AM_MSG_ACK_PARTIAL_DATA, len);
@@ -154,6 +156,7 @@ implementation{
   
   command void PCFileReceiver.receiveMore(){
     atomic {
+      waitingForReceiveMoreCommand = FALSE;
       bufferIndex = 0;
       if (state == STATE_PROCESSING) {
         sendAckMsg(AM_MSG_ACK_PARTIAL_DATA, lastReceivedPayloadLength);
@@ -169,7 +172,7 @@ implementation{
     if (error == SUCCESS) {
       signal PCFileReceiver.initDone();
     } else {
-      signal PCFileReceiver.error(PCC_ERR_SERIAL_INIT_FAILED);
+      signal PCFileReceiver.error(PFR_ERR_SERIAL_INIT_FAILED);
     }
   }
 
@@ -202,12 +205,17 @@ implementation{
           state = STATE_PROCESSING_EOF;
           processEndOfFile();
         } else {
-          signal PCFileReceiver.error(PCC_ERR_PROGRAMMER);
+          signal PCFileReceiver.error(PFR_ERR_PROGRAMMER);
         }
       } else {
         // We are not in a state to receive data, so
         // just drop the packet and signal an error
-        signal PCFileReceiver.error(PCC_ERR_PACKET_DROPPED);
+        
+        if (waitingForReceiveMoreCommand == TRUE) {
+          signal PCFileReceiver.error(PFR_ERR_EXPECTED_RECEIVE_MORE);
+        } else {
+          signal PCFileReceiver.error(PFR_ERR_PACKET_DROPPED);
+        }
       }
     }
     return msg;
