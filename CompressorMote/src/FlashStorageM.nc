@@ -1,6 +1,6 @@
 #include "FlashStorage.h"
 
-module FlashStorageM{
+module FlashStorageM {
   provides {
     interface FlashStorage;
   }
@@ -10,7 +10,7 @@ module FlashStorageM{
     interface BlockWrite;
   }
 }
-implementation{
+implementation {
   
   enum {
     BUFFER_CAPACITY = 100,
@@ -98,7 +98,7 @@ implementation{
     }
   }
 
-  command void FlashStorage.init(bool erase){
+  command void FlashStorage.init(bool erase) {
     if (erase == TRUE) {
       post wipeFlashTask();
     } else {
@@ -106,7 +106,7 @@ implementation{
     }
   }
   
-  command void FlashStorage.read(uint32_t fromIndex, uint8_t *data, uint16_t length){
+  command void FlashStorage.read(uint32_t fromIndex, uint8_t *data, uint16_t length) {
     atomic {
       if (call BlockRead.read(fromIndex, data, length) == SUCCESS) {
         state = STATE_READING_DATA;
@@ -116,7 +116,7 @@ implementation{
     }
   }
   
-  command void FlashStorage.write(uint8_t *data, uint16_t length){
+  command void FlashStorage.write(uint8_t *data, uint16_t length) {
     atomic {
       if (call BlockWrite.write(PREAMBLE_SIZE + size, data, length) == SUCCESS) {
         state = STATE_WRITING_DATA;
@@ -126,11 +126,11 @@ implementation{
     }
   }
 
-  event void BlockRead.computeCrcDone(storage_addr_t addr, storage_len_t len, uint16_t crc, error_t error){
+  event void BlockRead.computeCrcDone(storage_addr_t addr, storage_len_t len, uint16_t crc, error_t error) {
     
   }
 
-  event void BlockRead.readDone(storage_addr_t addr, void *buf, storage_len_t len, error_t error){
+  event void BlockRead.readDone(storage_addr_t addr, void *buf, storage_len_t len, error_t error) {
     if (error == SUCCESS) {
       atomic {
         if (state == STATE_READING_PREAMBLE) {
@@ -146,7 +146,7 @@ implementation{
     }
   }
 
-  event void BlockWrite.eraseDone(error_t error){
+  event void BlockWrite.eraseDone(error_t error) {
     if (error == SUCCESS) {
       atomic {
         size = 0;
@@ -156,7 +156,7 @@ implementation{
     }
   }
 
-  event void BlockWrite.syncDone(error_t error){
+  event void BlockWrite.syncDone(error_t error) {
     if (error == SUCCESS) {
       atomic {
         if (state == STATE_WRITING_INITIAL_PREAMBLE) {
@@ -173,7 +173,7 @@ implementation{
     }
   }
 
-  event void BlockWrite.writeDone(storage_addr_t addr, void *buf, storage_len_t len, error_t error){
+  event void BlockWrite.writeDone(storage_addr_t addr, void *buf, storage_len_t len, error_t error) {
     if (error == SUCCESS) {
       atomic {
         if (state == STATE_WRITING_DATA) {

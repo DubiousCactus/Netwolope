@@ -1,6 +1,6 @@
 #include "FlashStorage.h"
 
-interface FlashStorage{
+interface FlashStorage {
   
   command void init(bool erase);
   

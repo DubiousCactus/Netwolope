@@ -1,8 +1,8 @@
 #include "StorageVolumes.h"
 
-configuration ProgramC{
+configuration ProgramC {
 }
-implementation{
+implementation {
   components MainC;
   components LedsC;
   components ProgramM;

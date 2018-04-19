@@ -1,6 +1,6 @@
 #include "OnlineCompressionAlgorithm.h"
 
-interface OnlineCompressionAlgorithm{
+interface OnlineCompressionAlgorithm {
   command void init();
   command void fileBegin(uint32_t totalLength);
   command void compress(uint8_t* data, uint16_t length);

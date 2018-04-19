@@ -1,6 +1,6 @@
 #include "PCFileReceiver.h"
 
-module PCFileReceiverM{
+module PCFileReceiverM {
   provides {
     interface PCFileReceiver;
   }
@@ -12,7 +12,7 @@ module PCFileReceiverM{
     interface Receive as SerialReceive[am_id_t msg_type];
   }
 }
-implementation{
+implementation {
   typedef enum {
     STATE_INIT = 1,
     STATE_SENDING_ACK,
@@ -150,11 +150,11 @@ implementation{
     signal PCFileReceiver.fileEnd();
   }
   
-  command void PCFileReceiver.init(){
+  command void PCFileReceiver.init() {
     call SerialControl.start();
   }
   
-  command void PCFileReceiver.receiveMore(){
+  command void PCFileReceiver.receiveMore() {
     atomic {
       waitingForReceiveMoreCommand = FALSE;
       bufferIndex = 0;
@@ -166,9 +166,9 @@ implementation{
     }
   }
 
-  event void SerialControl.stopDone(error_t error){ }
+  event void SerialControl.stopDone(error_t error) { }
 
-  event void SerialControl.startDone(error_t error){
+  event void SerialControl.startDone(error_t error) {
     if (error == SUCCESS) {
       signal PCFileReceiver.initDone();
     } else {
@@ -176,7 +176,7 @@ implementation{
     }
   }
 
-  event void SerialSend.sendDone[am_id_t msg_type](message_t *msg, error_t error){
+  event void SerialSend.sendDone[am_id_t msg_type](message_t *msg, error_t error) {
     atomic {
       if (state == STATE_SENDING_ACK) {
         state = STATE_READY_TO_RECEIVE_DATA;
@@ -184,13 +184,13 @@ implementation{
     }
   }
 
-  event message_t * SerialReceive.receive[am_id_t msg_type](message_t *msg, void *payload, uint8_t len){
+  event message_t * SerialReceive.receive[am_id_t msg_type](message_t *msg, void *payload, uint8_t len) {
     
     atomic {
       // At any point in time, the PC can start the transmission of a file.
       // Whenever the mote receives BEGIN_TRANSMIT, it resets all its
       // buffers and prepares to receive bytes in chunks defined in PACKET_CAPACITY
-      if (msg_type == AM_MSG_BEGIN_FILE){
+      if (msg_type == AM_MSG_BEGIN_FILE) {
         state = STATE_PROCESSING;
         processBeginTrasmitMsg(msg);
         return msg;

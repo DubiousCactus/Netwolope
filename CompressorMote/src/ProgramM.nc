@@ -22,7 +22,7 @@ implementation{
   task void sendNextPacketOverRadio() {
     uint8_t bufferSize;
     atomic {
-      if (sendIndex == dataToSendLength){
+      if (sendIndex == dataToSendLength) {
         // All data are sent over the radio. 
         call ErrorIndicator.blinkRed(7);
         return;
@@ -40,54 +40,58 @@ implementation{
   
   // EVENT HANDLERS
   
-  event void Boot.booted(){
+  event void Boot.booted() {
     dataToSendLength = 0;
     sendIndex = 0;
     call Compressor.init();
   }
   
-  event void Compressor.initDone(){
+  event void Compressor.initDone() {
+    call Leds.led1On();
     /*call RadioSender.start();*/
   }
   
-  event void RadioSender.readyToSend(){
+  event void RadioSender.readyToSend() {
     call PCFileReceiver.init();
-    call Leds.led1Toggle();
+    /*call Leds.led1Toggle();*/
   }
   
-  event void PCFileReceiver.initDone(){ 
-     call Leds.led1On();
+  event void PCFileReceiver.initDone() { 
+     call Leds.led2On();
   }
   
-  event void PCFileReceiver.fileBegin(uint32_t totalLength){
+  event void PCFileReceiver.fileBegin(uint32_t totalLength) {
     call Compressor.fileBegin(totalLength);
   }
   
-  event void PCFileReceiver.receivedData(uint8_t *data, uint16_t length){
+  event void PCFileReceiver.receivedData(uint8_t *data, uint16_t length) {
+    call Leds.led1Off();
     call Compressor.compress(data, length);
   }
   
-  event void PCFileReceiver.fileEnd(){
+  event void PCFileReceiver.fileEnd() {
     call Compressor.fileEnd();
   }
   
-  event void Compressor.compressed(uint8_t *compressedData, uint16_t length){
+  event void Compressor.compressed(uint8_t *compressedData, uint16_t length) {
     atomic {
       dataToSend = compressedData;
       dataToSendLength = length;
       sendIndex = 0;
     }
+    call Leds.led2On();
     
     /* Send over serial */
 
     /*post sendNextPacketOverRadio();*/
   }
   
-  event void Compressor.compressDone(){
+  event void Compressor.compressDone() {
+    call Leds.led2On();
     /*call RadioSender.send(1, 0, temp, 0);*/
   }
 
-  event void RadioSender.sendDone(){
+  event void RadioSender.sendDone() {
     call Leds.led2On();
     atomic {
       sendIndex = newSendIndex;
@@ -99,11 +103,11 @@ implementation{
     }
   }
 
-  event void PCFileReceiver.error(PCFileReceiverError error){
+  event void PCFileReceiver.error(PCFileReceiverError error) {
     call ErrorIndicator.blinkRed(error);
   }
   
-  event void Compressor.error(CompressionError error){
+  event void Compressor.error(CompressionError error) {
     call Leds.led0On();
   }
 }

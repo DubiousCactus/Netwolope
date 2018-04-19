@@ -1,6 +1,6 @@
 #include "PCFileReceiver.h"
 
-interface PCFileReceiver{
+interface PCFileReceiver {
   command void init();
   
   command void receiveMore();
