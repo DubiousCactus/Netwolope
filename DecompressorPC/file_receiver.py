@@ -87,8 +87,9 @@ class MoteFileReceiver:
       if packet.type == AM_MSG_PARTIAL_DATA:
         msg = PartialDataMsg(packet.data)
         data = msg.data[:msg.dataSize]
-        print('\n[*] Received data: %s' % data)
+        print('\n[*] Received data of size %s' % len(data))
         self.current_file.write(bytearray(data))
+        self.current_file.flush()
       elif packet.type == AM_MSG_EOF:
         print('\n[*] Received EOF.')
         msg = EndOfFileMsg(packet.data)
