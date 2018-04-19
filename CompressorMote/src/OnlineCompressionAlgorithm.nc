@@ -9,5 +9,6 @@ interface OnlineCompressionAlgorithm{
   
   event void initDone();
   event void compressed(uint8_t* compressedData, uint16_t length);
+  event void compressDone();
   event void error(CompressionError error);
 }

@@ -18,7 +18,7 @@ implementation{
   }
 
   command void OnlineCompressionAlgorithm.fileEnd(){
-    // Ignore
+    signal OnlineCompressionAlgorithm.compressDone();
   }
 
   command uint8_t OnlineCompressionAlgorithm.getCompressionType(){

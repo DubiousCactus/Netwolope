@@ -13,16 +13,18 @@ implementation{
     RADIO_DATA_CAPACITY = 50
   };
   
+  uint8_t temp[RADIO_DATA_CAPACITY];
   uint8_t *dataToSend;
   uint16_t dataToSendLength;
   uint16_t sendIndex;
+  uint16_t newSendIndex;
   
   task void sendNextPacketOverRadio() {
     uint8_t bufferSize;
     atomic {
       if (sendIndex == dataToSendLength){
         // All data are sent over the radio. 
-        call Leds.led0On();
+        call ErrorIndicator.blinkRed(7);
         return;
       }
       if (sendIndex + RADIO_DATA_CAPACITY > dataToSendLength) {
@@ -31,8 +33,8 @@ implementation{
         bufferSize = RADIO_DATA_CAPACITY;
       }
       call Leds.led2Off();
+      newSendIndex = sendIndex + bufferSize;
       call RadioSender.send(0, 0, &(dataToSend[sendIndex]), bufferSize);
-      sendIndex += bufferSize;
     }
   }
   
@@ -78,13 +80,20 @@ implementation{
     
     post sendNextPacketOverRadio();
   }
+  
+  event void Compressor.compressDone(){
+    call RadioSender.send(1, 0, temp, 0);
+  }
 
   event void RadioSender.sendDone(){
     call Leds.led2On();
-    if (sendIndex < dataToSendLength) {
-      post sendNextPacketOverRadio();
-    } else {
-      call PCFileReceiver.receiveMore();
+    atomic {
+      sendIndex = newSendIndex;
+      if (sendIndex < dataToSendLength) {
+        post sendNextPacketOverRadio();
+      } else {
+        call PCFileReceiver.receiveMore();
+      }      
     }
   }
 
