@@ -40,7 +40,7 @@ implementation{
         lastSendBufferSize = (uint8_t)bufferCount;
       }
       
-      call PCFileSender.send(&(buffer[bufferHead]), lastSendBufferSize);
+      call PCFileSender.sendPartialData(&(buffer[bufferHead]), lastSendBufferSize);
     }
   }
 
@@ -51,11 +51,21 @@ implementation{
     call PCFileSender.init();
   }
   
-  event void PCFileSender.established(){
+  event void PCFileSender.initDone(){
     call RadioReceiver.init();
   }
   
   event void RadioReceiver.initDone(){
+    call Leds.led1Toggle();
+  }
+  
+  event void RadioReceiver.receivedFileBegin(uint32_t uncompressedSize, uint8_t compressionType){
+    call PCFileSender.sendFileBegin(uncompressedSize, compressionType);
+    call Leds.led1Toggle();
+  }
+
+  event void PCFileSender.beginFileSent(){
+    // TODO: 
     call Leds.led1Toggle();
   }
 
@@ -80,7 +90,7 @@ implementation{
     post sendNextDataToPC();
   }
 
-  event void PCFileSender.sent(){
+  event void PCFileSender.partialDataSent(){
     atomic {
       pcBusy = FALSE;
       bufferHead = (bufferHead + lastSendBufferSize) % BUFFER_CAPACITY;
@@ -130,4 +140,5 @@ implementation{
       }
     }
   }
+
 }

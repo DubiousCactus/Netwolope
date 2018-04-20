@@ -28,7 +28,6 @@ class BeginFileMsg(tos.Packet):
   def __init__(self, packet = None):
     packet_desc = [
       ('type', 'int', 1),
-      ('name', 'int', 4),
       ('size', 'int', 4),
     ]
     tos.Packet.__init__(self, packet_desc, packet)
@@ -38,7 +37,6 @@ class BeginFileActMsg(tos.Packet):
   def __init__(self, packet = None):
     packet_desc = [
       ('type', 'int', 1),
-      ('name', 'int', 4),
     ]
     tos.Packet.__init__(self, packet_desc, packet)
 
@@ -84,6 +82,8 @@ class MoteFileReceiver:
       if packet.type == AM_MSG_PARTIAL_DATA:
         msg = PartialDataMsg(packet.data)
         data = msg.data
+        data_size = len(data)
+        self.received_data_count += data_size
         print('\n[*] Received data of size %s' % len(data))
         self.current_file.write(bytearray(data))
         self.current_file.flush()
@@ -92,6 +92,10 @@ class MoteFileReceiver:
         msg = EndOfFileMsg(packet.data)
         self.current_file.close()
         print 'Data written to file: %s' % self.file_path
+        original_size = self.begin_file_msg.size
+        compressed_size = self.received_data_count
+        compression_rate = original_size / compressed_size
+        print 'Transferred file size: %s, original %s: Ratio: %s' % (original_size, compressed_size, compression_rate)
         return
       else:
         print('\n[!] Received an unknown packet: %s' % packet)
@@ -100,28 +104,29 @@ class MoteFileReceiver:
     folder = 'received_files'
     if not os.path.isdir(folder):
       os.mkdir(folder)
-    file_name = '%s-%s.pgm' % (datetime.today().strftime('%Y-%m-%d-%H-%M-%S'), self.begin_file_msg.name)
+    file_name = 'file-%s.pgm' % (datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))
     file_path = os.path.join(folder, file_name)
     self.current_file = open(file_path, 'wb')
     self.file_path = file_path
 
   def wait_for_begin_file(self):
+    print('\n[*] Listening for incoming files...')
     while True:
-      print('\n[*] Listening for incoming files...')
       packet = self.am.read()
       if packet.type == AM_MSG_BEGIN_FILE:
         msg = BeginFileMsg(packet.data)
-        print('\n[*] Received BEGIN_FILE. Sending acknowledgement...')
+        print('\n[*] New file (%s, %s). Sending acknowledgement...' % (msg.size, msg.type))
 
         # Send ack
-        ack_msg = BeginFileActMsg((msg.type, msg.name))
+        ack_msg = BeginFileActMsg((msg.type, ))
         self.am.write(ack_msg, AM_MSG_BEGIN_FILE_ACK)
 
         # Store the message for later use.
         self.begin_file_msg = msg
+        self.received_data_count = 0
         return
       else:
-        print('\n[!] Received an unknown packet: %s' % packet)
+        pass
 
   def listen(self):
     self.wait_for_begin_file()
