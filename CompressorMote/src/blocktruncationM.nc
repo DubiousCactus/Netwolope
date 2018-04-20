@@ -50,7 +50,7 @@ implementation{
 	}
 	void calculateSD(float data[]){
 		float sum = 0.0, mean, standardDeviation = 0.0;
-		int i;
+		int i;  
 		
 		for(i=0; i<10; ++i){
 			sum += data[i];
