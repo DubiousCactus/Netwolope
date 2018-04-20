@@ -70,6 +70,7 @@ implementation{
         signal RadioSender2.error(RS_ERR_INIT_FAILED);
         return;
       }
+      currentState = STATE_SENDING_PARTIAL_DATA;
       if (sendIndex + PACKET_CAPACITY > dataToSendLength) {
         bufferSize = (uint8_t)(dataToSendLength - sendIndex);
       } else {
@@ -94,7 +95,6 @@ implementation{
       dataToSend = buffer;
       dataToSendLength = bufferSize;
       sendIndex = 0;
-      currentState = STATE_SENDING_PARTIAL_DATA;
     }
     
     post sendNextPacketOverRadio();
