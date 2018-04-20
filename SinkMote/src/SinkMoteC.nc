@@ -6,8 +6,6 @@ implementation{
   components MainC;
   components LedsC;
   components ActiveMessageC as Radio;
-  components new AMSenderC(COMMUNICATION_ADDRESS);
-  components new AMReceiverC(COMMUNICATION_ADDRESS);
   
   components SerialActiveMessageC as Serial;
   components new TimerMilliC() as Timer0;
@@ -23,11 +21,11 @@ implementation{
   PCFileSenderM.SerialSend -> Serial.AMSend;
   PCFileSenderM.SerialReceive -> Serial.Receive;
   
-  RadioReceiverM.Packet -> AMSenderC;
-  RadioReceiverM.AMPacket -> AMSenderC;
-  RadioReceiverM.AMSend -> AMSenderC;
-  RadioReceiverM.Receive -> AMReceiverC;
-  RadioReceiverM.AMControl -> Radio;
+  RadioReceiverM.Packet -> Radio;
+  RadioReceiverM.AMPacket -> Radio;
+  RadioReceiverM.RadioSend -> Radio.AMSend;
+  RadioReceiverM.RadioReceive -> Radio.Receive;
+  RadioReceiverM.RadioControl -> Radio;
   
   SinkMoteM.Boot -> MainC;
   SinkMoteM.Leds -> LedsC;

@@ -15,7 +15,7 @@ module SinkMoteM @safe() {
 implementation{
   enum {
     MSG_QUEUE_CAPACITY = 10,
-    BUFFER_CAPACITY = 1024,
+    BUFFER_CAPACITY = 4096,
     PAYLOAD_CAPACITY = 64,
     PC_SEND_CAPACITY = 50
   };
@@ -52,10 +52,10 @@ implementation{
   }
   
   event void PCFileSender.established(){
-    call RadioReceiver.start();
+    call RadioReceiver.init();
   }
   
-  event void RadioReceiver.readyForReceive(){
+  event void RadioReceiver.initDone(){
     call Leds.led1Toggle();
   }
 
@@ -110,5 +110,9 @@ implementation{
 
   event void ErrorTimer.fired(){
     call Leds.led0Toggle();
+  }
+
+  event void RadioReceiver.error(RadioReceiverError error){
+    call ErrorTimer.startPeriodic(500);
   }
 }

@@ -1,7 +1,9 @@
-#include "RadioHeader.h"
+#include "RadioReceiver.h"
 
 interface RadioReceiver{
-  command void start();
+  command void init();
+  
+  event void initDone();
   event void receivedData(uint8_t * data, uint8_t size);
-  event void readyForReceive();
+  event void error(RadioReceiverError error);
 }
