@@ -23,7 +23,9 @@ implementation{
     STATE_NOT_READY,
     STATE_READY,
     STATE_SENDING_PARTIAL_DATA,
-    STATE_WAITING_PARTIAL_DATA_ACK
+    STATE_SENDING_EOF,
+    STATE_WAITING_PARTIAL_DATA_ACK,
+    STATE_WAITING_EOF_ACK
   } State;
   
   State currentState = STATE_NOT_READY;
@@ -107,6 +109,7 @@ implementation{
         return;
       }
       
+      currentState = STATE_SENDING_EOF;
       if (call RadioSend.send[AM_MSG_EOF](AM_BROADCAST_ADDR, &pkt, 0) != SUCCESS) {
         signal RadioSender2.error(RS_ERR_SEND_FAILED);
       }
@@ -135,6 +138,8 @@ implementation{
     atomic {
       if (currentState == STATE_SENDING_PARTIAL_DATA) {
         currentState = STATE_WAITING_PARTIAL_DATA_ACK;
+      } else if (currentState == STATE_SENDING_EOF) {
+        currentState = STATE_WAITING_EOF_ACK;
       } else {
         signal RadioSender2.error(RS_ERR_INVALID_STATE);
       }
@@ -153,6 +158,9 @@ implementation{
             signal RadioSender2.sendDone();
           }   
         }
+      } else if (currentState == STATE_WAITING_EOF_ACK){
+        // TODO: Do something here
+        currentState = STATE_READY;
       } else {
         signal RadioSender2.error(RS_ERR_INVALID_STATE);
       }

@@ -34,6 +34,7 @@ implementation{
   }
   
   event void PCFileReceiver.fileEnd(){
+    call Leds.led2On();
     call Compressor.fileEnd();
   }
   
@@ -42,11 +43,10 @@ implementation{
   }
   
   event void Compressor.compressDone(){
-    //call RadioSender.sendEOF();
+    call RadioSender.sendEOF();
   }
 
   event void RadioSender.sendDone(){
-    call Leds.led2On();
     call PCFileReceiver.receiveMore();
   }
 
