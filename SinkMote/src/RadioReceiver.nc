@@ -5,5 +5,6 @@ interface RadioReceiver{
   
   event void initDone();
   event void receivedData(uint8_t * data, uint8_t size);
+  event void receivedEOF();
   event void error(RadioReceiverError error);
 }

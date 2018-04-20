@@ -26,6 +26,7 @@ implementation{
   uint16_t bufferCount;
   uint8_t lastSendBufferSize;
   bool pcBusy;
+  bool receivedEOF = FALSE;
   
   task void sendNextDataToPC() {
     atomic {
@@ -88,7 +89,12 @@ implementation{
     }
     if (bufferCount > 0) {
       post sendNextDataToPC();
+      
+    } else if (receivedEOF == TRUE) {
+      receivedEOF = FALSE;
+      call PCFileSender.sendEOF();
     }
+    
     call Leds.led2Toggle();
   }
   
@@ -114,5 +120,15 @@ implementation{
 
   event void RadioReceiver.error(RadioReceiverError error){
     call ErrorTimer.startPeriodic(500);
+  }
+
+  event void RadioReceiver.receivedEOF(){
+    atomic {
+      if (bufferCount == 0) {
+        call PCFileSender.sendEOF();
+      } else {
+        receivedEOF = TRUE;
+      }
+    }
   }
 }

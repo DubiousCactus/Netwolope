@@ -15,14 +15,18 @@ implementation{
     AM_MSG_ACK_PARTIAL_DATA   = 23,
     AM_MSG_EOF                = 24,
     AM_MSG_ACK_EOF            = 25,
-    //BUFFER_CAPACITY = 128,
-    //PACKET_CAPACITY = 64
   };
   
   message_t pkt;
   
   void sendPartialDataAckMsg() {
     if (call RadioSend.send[AM_MSG_ACK_PARTIAL_DATA](AM_BROADCAST_ADDR, &pkt, 0) != SUCCESS) {
+      signal RadioReceiver.error(RR_ERR_SEND_FAILED);
+    }
+  }
+  
+  void sendEOFAckMsg() {
+    if (call RadioSend.send[AM_MSG_ACK_EOF](AM_BROADCAST_ADDR, &pkt, 0) != SUCCESS) {
       signal RadioReceiver.error(RR_ERR_SEND_FAILED);
     }
   }
@@ -47,6 +51,9 @@ implementation{
     if (msg_type == AM_MSG_PARTIAL_DATA) {
       signal RadioReceiver.receivedData((uint8_t*)payload, len);
       sendPartialDataAckMsg();
+    } else if (msg_type == AM_MSG_EOF) {
+      signal RadioReceiver.receivedEOF();
+      sendEOFAckMsg();
     }
     return msg;
   }
