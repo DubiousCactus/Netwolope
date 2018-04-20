@@ -4,7 +4,7 @@ module ProgramM{
     interface Leds;
     interface PCFileReceiver;
     interface OnlineCompressionAlgorithm as Compressor;
-    interface RadioSender2 as RadioSender;
+    interface RadioSender as RadioSender;
     interface ErrorIndicator;
   }
 }
@@ -22,7 +22,7 @@ implementation{
   }
   
   event void PCFileReceiver.initDone(){ 
-     call Leds.led1On();
+     //call Leds.led1On();
   }
   
   event void PCFileReceiver.fileBegin(uint32_t totalLength){
@@ -34,11 +34,11 @@ implementation{
   }
   
   event void PCFileReceiver.fileEnd(){
-    call Leds.led2On();
     call Compressor.fileEnd();
   }
   
   event void Compressor.compressed(uint8_t *compressedData, uint16_t length){
+    //call Leds.led2On();
     call RadioSender.sendPartialData(compressedData, length);
   }
   
@@ -51,14 +51,14 @@ implementation{
   }
 
   event void PCFileReceiver.error(PCFileReceiverError error){
-    call ErrorIndicator.blinkRed(error);
+    //call ErrorIndicator.blinkRed(error);
   }
   
   event void Compressor.error(CompressionError error){
-    call Leds.led0On();
+    //call ErrorIndicator.blinkRed(error);
   }
 
   event void RadioSender.error(RadioSenderError error){
-    call ErrorIndicator.blinkRed(error);
+    //call ErrorIndicator.blinkRed(error);
   }
 }
