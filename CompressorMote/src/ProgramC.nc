@@ -7,10 +7,7 @@ implementation {
   components LedsC;
   components ProgramM;
   components SerialActiveMessageC as Serial;
-  
   components ActiveMessageC as Radio;
-  components new AMSenderC(6) as AMSender;
-  components new AMReceiverC(6) as AMReceiver;
   
   components new BlockStorageC(VOLUME_BLOCKTEST) as BlockStorage;
   components new TimerMilliC() as Timer0;
@@ -20,7 +17,6 @@ implementation {
   components RossCompressionM;
   components ErrorIndicatorM;
 //  components FlashStorageM;
-
 
   PCFileReceiverM.SerialControl -> Serial;
   PCFileReceiverM.SerialPacket -> Serial;
@@ -32,12 +28,11 @@ implementation {
 //  FlashStorageM.BlockWrite -> BlockStorage;
 //  FlashStorageM.Leds -> LedsC;
 
-  RadioSenderM.Packet -> AMSender;
-  RadioSenderM.AMPacket -> AMSender;
-  RadioSenderM.AMSend -> AMSender;
-  RadioSenderM.Receive -> AMReceiver;
-  RadioSenderM.AMControl -> Radio;
-//  RadioSenderM.Leds -> LedsC;
+  RadioSenderM.Packet -> Radio;
+  RadioSenderM.AMPacket -> Radio;
+  RadioSenderM.RadioSend -> Radio.AMSend;
+  RadioSenderM.RadioReceive -> Radio.Receive;
+  RadioSenderM.RadioControl -> Radio;
 
   ErrorIndicatorM.BlinkTimer -> Timer0;
   ErrorIndicatorM.Leds -> LedsC;
@@ -48,5 +43,4 @@ implementation {
   ProgramM.PCFileReceiver -> PCFileReceiverM;
   ProgramM.Compressor -> RossCompressionM;
   ProgramM.ErrorIndicator -> ErrorIndicatorM;
-//  ProgramM.FlashStorage -> FlashStorageM;
 }

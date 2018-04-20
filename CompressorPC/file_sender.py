@@ -54,22 +54,18 @@ class MoteFileSender:
   def send_message(self, msg, msg_type, ack_type, num_retries = 10):
     #sleep(1)
     counter = 0
-    while True:
-      self.am.write(msg, msg_type)
-      resp = self.am.read(timeout=5)
-      if resp:
-        if resp.type == ack_type:
-          print ' [*] Received expected acknowledgement: ', resp
-          return
-        else:
-          print ' [!] Received unexpected packet', resp
-          exit(1)
+    self.am.write(msg, msg_type)
+    resp = self.am.read(timeout=5)
+    if resp:
+      if resp.type == ack_type:
+        print ' [*] Received expected acknowledgement: ', resp
+        return
       else:
-        print ' [!] Read timeout'
-      counter += 1
-      if counter >= num_retries:
-        print ' [!] Retried %s times. Giving up...' % num_retries
+        print ' [!] Received unexpected packet', resp
         exit(1)
+    else:
+      print ' [!] Read timeout'
+      exit(1)
 
   def send_begin_file(self):
     msg = BeginFileMsg((self.file_size, ))
