@@ -19,7 +19,7 @@ implementation{
   uint16_t dataToSendLength;
   uint16_t sendIndex;
   uint16_t newSendIndex;
-  uint8_t buffer[] = {1,2,3,4,5,6};
+  uint8_t buffer[] = {245, 239, 249, 239, 245, 245, 239, 235, 245, 245, 245, 245, 245, 235, 235, 239};
   
   task void sendNextPacketOverRadio() {
     uint8_t bufferSize;
@@ -45,7 +45,7 @@ implementation{
   event void Boot.booted(){
     dataToSendLength = 0;
     sendIndex = 0;
-    call Compressor.compress(buffer, 6);
+    call Compressor.compress(buffer, 16);
     //call Compressor.init();
   }
   

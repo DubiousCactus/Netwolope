@@ -1,4 +1,5 @@
 COMPONENT=ProgramC
 CFLAGS += -I$(TOSDIR)/lib/printf
+CFLAGS += -DPRINTF_BUFFER_SIZE=1000
 
 include $(MAKERULES)
