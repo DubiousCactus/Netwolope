@@ -94,7 +94,7 @@ class MoteFileReceiver:
         print 'Data written to file: %s' % self.file_path
         original_size = self.begin_file_msg.size
         compressed_size = self.received_data_count
-        compression_rate = original_size / compressed_size
+        compression_rate = original_size / float(compressed_size)
         print 'Transferred file size: %s, original %s: Ratio: %s' % (original_size, compressed_size, compression_rate)
         return
       else:
