@@ -11,10 +11,13 @@ module RadioSenderM{
 }
 implementation{
   enum {
+    AM_MSG_BEGIN_FILE         = 20,
+    AM_MSG_ACK_BEGIN_FILE     = 21,
     AM_MSG_PARTIAL_DATA       = 22,
     AM_MSG_ACK_PARTIAL_DATA   = 23,
     AM_MSG_EOF                = 24,
     AM_MSG_ACK_EOF            = 25,
+    
     BUFFER_CAPACITY = 128,
     PACKET_CAPACITY = 64
   };
@@ -22,16 +25,18 @@ implementation{
   typedef enum {
     STATE_NOT_READY,
     STATE_READY,
+    STATE_SENDING_BEGIN_FILE,
     STATE_SENDING_PARTIAL_DATA,
     STATE_SENDING_EOF,
     STATE_WAITING_PARTIAL_DATA_ACK,
-    STATE_WAITING_EOF_ACK
+    STATE_WAITING_EOF_ACK,
+    STATE_WAITING_BEGIN_FILE_ACK
   } State;
   
   State currentState = STATE_NOT_READY;
   
   typedef nx_struct {
-    nx_uint32_t totalSize;
+    nx_uint32_t uncompressedSize;
     nx_uint8_t compressionType;
   } BeginFileMsg;
   
@@ -87,6 +92,16 @@ implementation{
     call RadioControl.start();
   }
 
+  command void RadioSender.sendFileBegin(uint32_t uncompressedSize, uint8_t compressionType){
+    BeginFileMsg* msg = (BeginFileMsg*)(call Packet.getPayload(&pkt, sizeof(BeginFileMsg)));
+    msg->uncompressedSize = uncompressedSize;
+    msg->compressionType = compressionType;
+    currentState = STATE_SENDING_BEGIN_FILE;
+    if (call RadioSend.send[AM_MSG_BEGIN_FILE](AM_BROADCAST_ADDR, &pkt, sizeof(BeginFileMsg)) != SUCCESS) {
+      signal RadioSender.error(RS_ERR_SEND_FAILED);
+    }
+  }
+
   command void RadioSender.sendPartialData(uint8_t *buffer, uint16_t bufferSize){
     atomic {
       if (currentState != STATE_READY) {
@@ -140,6 +155,8 @@ implementation{
         currentState = STATE_WAITING_PARTIAL_DATA_ACK;
       } else if (currentState == STATE_SENDING_EOF) {
         currentState = STATE_WAITING_EOF_ACK;
+      } else if (currentState == STATE_SENDING_BEGIN_FILE) {
+        currentState = STATE_WAITING_BEGIN_FILE_ACK;
       } else {
         signal RadioSender.error(RS_ERR_INVALID_STATE);
       }
@@ -161,6 +178,10 @@ implementation{
       } else if (currentState == STATE_WAITING_EOF_ACK){
         // TODO: Do something here
         currentState = STATE_READY;
+      } else if (currentState == STATE_WAITING_BEGIN_FILE_ACK){
+        // TODO: Do something here
+        currentState = STATE_READY;
+        signal RadioSender.fileBeginSent();
       } else {
         signal RadioSender.error(RS_ERR_INVALID_STATE);
       }

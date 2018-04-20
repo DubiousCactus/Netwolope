@@ -116,7 +116,6 @@ implementation{
       bufferIndex = 0;
     }
     signal PCFileReceiver.fileBegin(totalSize);
-    sendAckMsg(AM_MSG_ACK_BEGIN_FILE, totalSize);
   }
   
   void processPartialData(message_t *msg, void *payload, uint8_t len) {
@@ -165,6 +164,10 @@ implementation{
         signal PCFileReceiver.fileEnd();
       }
     }
+  }
+  
+  command void PCFileReceiver.sendFileBeginAck() {
+    sendAckMsg(AM_MSG_ACK_BEGIN_FILE, totalSize);
   }
 
   event void SerialControl.stopDone(error_t error){ }

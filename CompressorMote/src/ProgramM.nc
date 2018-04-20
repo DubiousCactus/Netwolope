@@ -27,6 +27,11 @@ implementation{
   
   event void PCFileReceiver.fileBegin(uint32_t totalLength){
     call Compressor.fileBegin(totalLength);
+    call RadioSender.sendFileBegin(totalLength, call Compressor.getCompressionType());
+  }
+  
+  event void RadioSender.fileBeginSent(){
+    call PCFileReceiver.sendFileBeginAck();
   }
   
   event void PCFileReceiver.receivedData(uint8_t *data, uint16_t length){
@@ -61,4 +66,5 @@ implementation{
   event void RadioSender.error(RadioSenderError error){
     call ErrorIndicator.blinkRed(error);
   }
+
 }

@@ -5,6 +5,8 @@ interface PCFileReceiver{
   
   command void receiveMore();
   
+  command void sendFileBeginAck();
+  
   event void initDone();
   
   event void error(PCFileReceiverError error);
