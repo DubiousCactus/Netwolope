@@ -127,10 +127,9 @@ class MoteFileReceiver:
         print('\n[!] Received an unknown packet: %s' % packet)
 
   def listen(self):
-    while True:
-      self.wait_for_begin_file()
-      self.prepare_file()
-      self.wait_for_data()
+    self.wait_for_begin_file()
+    self.prepare_file()
+    self.wait_for_data()
 
 
 parser = OptionParser()
