@@ -14,3 +14,4 @@ build
 *.swp
 *~
 .ipynb_checkpoints
+received_files
