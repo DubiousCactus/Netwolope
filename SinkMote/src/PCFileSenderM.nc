@@ -1,7 +1,6 @@
 #include "AM.h"
 #include "Serial.h"
 #include "PCFileSender.h"
-#include "Messages.h"
 
 module PCFileSenderM{
   provides {
@@ -36,6 +35,26 @@ implementation{
     AM_MSG_EOF_ACK = 69
   };
   
+
+  enum {
+    PARTIAL_DATA_CAPACITY = 60,
+    PAYLOAD_CAPACITY = 64,
+  };
+
+  typedef nx_struct {
+    nx_uint8_t type;
+    nx_uint32_t name;
+    nx_uint32_t size;
+  } BeginFileMsg;
+
+  typedef nx_struct {
+    nx_uint8_t data[PAYLOAD_CAPACITY];
+  } PartialDataMsg;
+
+  typedef nx_struct {
+    nx_uint8_t name;
+  } EndOfFileMsg;
+
   message_t packet;
   uint8_t currentRetry = 0;
   ConnectionState state = STATE_BEGIN;
@@ -55,14 +74,16 @@ implementation{
     PartialDataMsg* msg = (PartialDataMsg*)prepareMsg(sizeof(PartialDataMsg));
     uint8_t i;
     
-    msg->seqNo = 10;
-    msg->flags = 1;
-    msg->dataSize = size;
+    if (size > PAYLOAD_CAPACITY) {
+      signal PCFileSender.error(PFS_ERR_SEND_FAILED);
+      return;
+    }
+    
     for (i = 0; i < size; i++) {
       msg->data[i] = data[i];
     }
     
-    if (call SerialSend.send[AM_MSG_PARTIAL_DATA](AM_BROADCAST_ADDR, &packet, sizeof(PartialDataMsg)) == SUCCESS) {
+    if (call SerialSend.send[AM_MSG_PARTIAL_DATA](AM_BROADCAST_ADDR, &packet, size) == SUCCESS) {
       atomic {
         state = STATE_SENDING_PARTIAL_DATA;
       }

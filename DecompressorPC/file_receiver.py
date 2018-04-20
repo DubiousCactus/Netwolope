@@ -46,9 +46,6 @@ class BeginFileActMsg(tos.Packet):
 class PartialDataMsg(tos.Packet):
   def __init__(self, packet = None):
     packet_desc = [
-      ('seqNo', 'int', 2),
-      ('flags', 'int', 1),
-      ('dataSize', 'int', 1),
       ('data', 'blob', None),
     ]
     tos.Packet.__init__(self, packet_desc, packet)
@@ -86,7 +83,7 @@ class MoteFileReceiver:
       packet = self.am.read()
       if packet.type == AM_MSG_PARTIAL_DATA:
         msg = PartialDataMsg(packet.data)
-        data = msg.data[:msg.dataSize]
+        data = msg.data
         print('\n[*] Received data of size %s' % len(data))
         self.current_file.write(bytearray(data))
         self.current_file.flush()

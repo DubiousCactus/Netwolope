@@ -1,7 +1,6 @@
 #include "AM.h"
 #include "Serial.h"
 #include "PCFileSender.h"
-#include "Messages.h"
 
 module SinkMoteM @safe() {
   uses {
@@ -17,7 +16,7 @@ implementation{
     MSG_QUEUE_CAPACITY = 10,
     BUFFER_CAPACITY = 4096,
     PAYLOAD_CAPACITY = 64,
-    PC_SEND_CAPACITY = 50
+    PC_SEND_CAPACITY = 64
   };
   
   uint8_t buffer[BUFFER_CAPACITY];
