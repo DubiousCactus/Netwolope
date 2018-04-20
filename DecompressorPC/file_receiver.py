@@ -20,6 +20,9 @@ AM_MSG_ACK_PARTIAL_DATA   = 67
 AM_MSG_EOF                = 68
 AM_MSG_EOF_ACK            = 69
 
+COMPRESSION_TYPE_NONE = 0
+COMPRESSION_TYPE_RUN_LENGTH = 1
+
 PACKET_CAPACITY = 64
 debug = '--debug' in sys.argv
 
@@ -91,11 +94,6 @@ class MoteFileReceiver:
         print('\n[*] Received EOF.')
         msg = EndOfFileMsg(packet.data)
         self.current_file.close()
-        print 'Data written to file: %s' % self.file_path
-        original_size = self.begin_file_msg.size
-        compressed_size = self.received_data_count
-        compression_rate = original_size / float(compressed_size)
-        print 'Transferred file size: %s, original %s: Ratio: %s' % (original_size, compressed_size, compression_rate)
         return
       else:
         print('\n[!] Received an unknown packet: %s' % packet)
@@ -104,10 +102,11 @@ class MoteFileReceiver:
     folder = 'received_files'
     if not os.path.isdir(folder):
       os.mkdir(folder)
-    file_name = 'file-%s.pgm' % (datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))
+    file_name = 'file-%s.part' % (datetime.today().strftime('%Y-%m-%d-%H-%M-%S'))
     file_path = os.path.join(folder, file_name)
     self.current_file = open(file_path, 'wb')
     self.file_path = file_path
+    self.decompressed_file_path = file_path.replace('.part', '.pgm')
 
   def wait_for_begin_file(self):
     print('\n[*] Listening for incoming files...')
@@ -128,10 +127,44 @@ class MoteFileReceiver:
       else:
         pass
 
+  def decompress_run_length(self):
+    print('Decompressing run-length encoded file...')
+    in_file = open(self.file_path, 'rb')
+    out_file = open(self.decompressed_file_path, 'wb')
+    while True:
+      byte_array = in_file.read(2)
+      if len(byte_array) != 2:
+        break
+      data = byte_array[0]
+      count = int(byte_array[1].encode('hex'), 16)
+      out_file.write(bytearray( data * count ))
+    in_file.close()
+    out_file.close()
+    print('Decompressed file: %s' % self.decompressed_file_path)
+
+  def decompress(self):
+    compr_type = self.begin_file_msg.type
+    if compr_type == COMPRESSION_TYPE_NONE:
+      os.rename(self.file_name, self.decompressed_file_path)
+    elif compr_type == COMPRESSION_TYPE_RUN_LENGTH:
+      self.decompress_run_length()
+    else:
+      # Uknown compression
+      print('Unknown compression: %s' % compr_type)
+
+  def print_summary(self):
+    print 'Data written to file: %s' % self.file_path
+    original_size = self.begin_file_msg.size
+    compressed_size = self.received_data_count
+    compression_rate = original_size / float(compressed_size)
+    print 'Transferred file size: %s, original %s: Ratio: %s' % (original_size, compressed_size, compression_rate)
+
   def listen(self):
     self.wait_for_begin_file()
     self.prepare_file()
     self.wait_for_data()
+    self.print_summary()
+    self.decompress()
 
 
 parser = OptionParser()
