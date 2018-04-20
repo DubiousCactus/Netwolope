@@ -7,15 +7,13 @@ implementation{
   components LedsC;
   components ProgramM;
   components SerialActiveMessageC as Serial;
-  
   components ActiveMessageC as Radio;
-  components new AMSenderC(6) as AMSender;
-  components new AMReceiverC(6) as AMReceiver;
   
   components new BlockStorageC(VOLUME_BLOCKTEST) as BlockStorage;
   components new TimerMilliC() as Timer0;
   components PCFileReceiverM;
-  components RadioSenderM;
+//  components RadioSenderM;
+  components RadioSender2M;
   components NoCompressionM;
   components ErrorIndicatorM;
 //  components FlashStorageM;
@@ -31,19 +29,25 @@ implementation{
 //  FlashStorageM.BlockWrite -> BlockStorage;
 //  FlashStorageM.Leds -> LedsC;
 
-  RadioSenderM.Packet -> AMSender;
-  RadioSenderM.AMPacket -> AMSender;
-  RadioSenderM.AMSend -> AMSender;
-  RadioSenderM.Receive -> AMReceiver;
-  RadioSenderM.AMControl -> Radio;
+//  RadioSenderM.Packet -> AMSender;
+//  RadioSenderM.AMPacket -> AMSender;
+//  RadioSenderM.AMSend -> AMSender;
+//  RadioSenderM.Receive -> AMReceiver;
+//  RadioSenderM.AMControl -> Radio;
 //  RadioSenderM.Leds -> LedsC;
+
+  RadioSender2M.Packet -> Radio;
+  RadioSender2M.AMPacket -> Radio;
+  RadioSender2M.RadioSend -> Radio.AMSend;
+  RadioSender2M.RadioReceive -> Radio.Receive;
+  RadioSender2M.RadioControl -> Radio;
 
   ErrorIndicatorM.BlinkTimer -> Timer0;
   ErrorIndicatorM.Leds -> LedsC;
   
   ProgramM.Boot -> MainC;
   ProgramM.Leds -> LedsC;
-  ProgramM.RadioSender -> RadioSenderM;
+  ProgramM.RadioSender -> RadioSender2M;
   ProgramM.PCFileReceiver -> PCFileReceiverM;
   ProgramM.Compressor -> NoCompressionM;
   ProgramM.ErrorIndicator -> ErrorIndicatorM;

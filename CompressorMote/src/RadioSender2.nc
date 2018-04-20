@@ -7,5 +7,5 @@ interface RadioSender2{
   
   event void initDone();
   event void sendDone();
-  event void error(RadioSenderError err);
+  event void error(RadioSenderError error);
 }
