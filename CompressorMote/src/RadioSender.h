@@ -1,5 +1,5 @@
-#ifndef RADIO_SENDER2_H
-#define RADIO_SENDER2_H
+#ifndef RADIO_SENDER_H
+#define RADIO_SENDER_H
 
 typedef enum {
   RS_ERR_INIT_FAILED = 2,
@@ -8,4 +8,4 @@ typedef enum {
   RS_ERR_INVALID_STATE,
 } RadioSenderError;
 
-#endif /* RADIO_SENDER2_H */
+#endif /* RADIO_SENDER_H */

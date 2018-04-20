@@ -1,147 +1,170 @@
-#include "RadioHeader.h"
-#include "Timer.h"
+#include "RadioSender.h"
+
 module RadioSenderM{
   provides interface RadioSender;
+  
   uses interface Packet;
   uses interface AMPacket;
-  uses interface AMSend;
-  uses interface Receive;
-  uses interface SplitControl as AMControl;
+  uses interface AMSend as RadioSend[am_id_t msg_type];
+  uses interface Receive as RadioReceive[am_id_t msg_type];
+  uses interface SplitControl as RadioControl;
 }
 implementation{
-  uint16_t currentSequenceNumber = 0;
-  nx_uint8_t tracker[DATA_SIZE]; //Used for the receiver to track received packages.
-  bool busy = FALSE;
+  enum {
+    AM_MSG_PARTIAL_DATA       = 22,
+    AM_MSG_ACK_PARTIAL_DATA   = 23,
+    AM_MSG_EOF                = 24,
+    AM_MSG_ACK_EOF            = 25,
+    BUFFER_CAPACITY = 128,
+    PACKET_CAPACITY = 64
+  };
+  
+  typedef enum {
+    STATE_NOT_READY,
+    STATE_READY,
+    STATE_SENDING_PARTIAL_DATA,
+    STATE_SENDING_EOF,
+    STATE_WAITING_PARTIAL_DATA_ACK,
+    STATE_WAITING_EOF_ACK
+  } State;
+  
+  State currentState = STATE_NOT_READY;
+  
+  typedef nx_struct {
+    nx_uint32_t totalSize;
+    nx_uint8_t compressionType;
+  } BeginFileMsg;
+  
+  typedef nx_struct {
+    nx_uint32_t length;
+  } AckMsg;
+  
+  typedef nx_struct {
+    nx_uint8_t data[PACKET_CAPACITY];
+  } PartialDataMsg;
+  
+  
+  uint8_t *dataToSend;
+  uint16_t dataToSendLength;
+  uint16_t sendIndex;
+  uint16_t newSendIndex;
   message_t pkt;
   
-  void flipTacker(nx_uint8_t* A){
-    int i;
-    for(i = 0; i < DATA_SIZE;i++){
-      if(A[i] == 1){
-        tracker[i] = 1;
-      }else{
-        tracker[i] = 0;
-      }
-    }
-  }
-  
-  bool anymissing(){
-    bool zero = FALSE;
-    bool onesAfterZero = FALSE;
-    int i;
-    for(i = 0; i < DATA_SIZE;i++){
-      if(tracker[i] == 0){
-        zero = TRUE;
-      }else{
-        if(zero){
-          onesAfterZero = TRUE;
-          }
-      }
-    }
-    return zero && onesAfterZero;
-  }
-  
-  /*findMissingPackage:
-   * Returning the missing package ID by looking at the tracker array.
-   * */
-  uint16_t findMissingPackage(){
-    uint16_t i;
-    for(i = 0; i < DATA_SIZE;i++){
-      if(tracker[i] == 0){
-        return i;
-      }
-    }
-    return -1;
-  }
-  
-  /*
-   * setData:
-   * Sets the dataElement in a package equal to the array *d
-   * */
-  void copyArray(nx_uint8_t* A, nx_uint8_t *B){
-    int i;
-    for(i = 0; i < DATA_SIZE;i++){
-      A[i] = B[i];
-    }
-  }
-  
-   /*sendOptionPackage:
-  * id: unique identification number for the image part.
-  * last: Tells the receiver that this is the last part to be send (unless the receives request a previous part.)
-  * request: Tells the Sender that a part is missing.
-  * This task will send a DataPackage struct, in case of a request for a part the data element will be empty.*/
-  void sendOptionPackage(uint8_t last, uint8_t request, uint8_t * data, uint8_t size){
+  void sendDataOverRadio(am_id_t msg_type, uint8_t* buffer, uint8_t bufferSize) {
     uint8_t i;
-    if (!busy) {
-      DataPackage* DP = (DataPackage*)(call Packet.getPayload(&pkt, sizeof (DataPackage)));
-      currentSequenceNumber = findMissingPackage();
-      if(currentSequenceNumber != -1){
-        DP->sequenceNumber = currentSequenceNumber;
-        DP->last = last;
-        DP->request = request;
-        DP->dataSize = size;
-        for (i = 0; i < size; i++) {
-          DP->data[i] = data[i];
-        }
-        if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(DataPackage)) == SUCCESS) {
-         busy = TRUE;     
-        }
+    PartialDataMsg* msg = (PartialDataMsg*)(call Packet.getPayload(&pkt, sizeof(PartialDataMsg)));
+    if (bufferSize > PACKET_CAPACITY) {
+      signal RadioSender.error(RS_ERR_PROGRAMMER);
+      return;
+    }
+    for (i = 0; i < bufferSize; i++) {
+      msg->data[i] = buffer[i];
+    }
+    if (call RadioSend.send[msg_type](AM_BROADCAST_ADDR, &pkt, bufferSize) != SUCCESS) {
+      signal RadioSender.error(RS_ERR_SEND_FAILED);
+    }
+  }
+  
+  task void sendNextPacketOverRadio() {
+    uint8_t bufferSize;
+    atomic {
+      if (sendIndex == dataToSendLength){
+        signal RadioSender.error(RS_ERR_INIT_FAILED);
+        return;
+      }
+      currentState = STATE_SENDING_PARTIAL_DATA;
+      if (sendIndex + PACKET_CAPACITY > dataToSendLength) {
+        bufferSize = (uint8_t)(dataToSendLength - sendIndex);
+      } else {
+        bufferSize = PACKET_CAPACITY;
+      }
+      newSendIndex = sendIndex + bufferSize;
+      sendDataOverRadio(AM_MSG_PARTIAL_DATA, &(dataToSend[sendIndex]), bufferSize);
+    }
+  }
+
+  command void RadioSender.init(){
+    call RadioControl.start();
+  }
+
+  command void RadioSender.sendPartialData(uint8_t *buffer, uint16_t bufferSize){
+    atomic {
+      if (currentState != STATE_READY) {
+        signal RadioSender.error(RS_ERR_INVALID_STATE);
+        return;
+      }
+      
+      dataToSend = buffer;
+      dataToSendLength = bufferSize;
+      sendIndex = 0;
+    }
+    
+    post sendNextPacketOverRadio();
+  }
+
+  command void RadioSender.sendEOF(){
+    atomic {
+      if (currentState != STATE_READY) {
+        signal RadioSender.error(RS_ERR_INVALID_STATE);
+        return;
+      }
+      
+      currentState = STATE_SENDING_EOF;
+      if (call RadioSend.send[AM_MSG_EOF](AM_BROADCAST_ADDR, &pkt, 0) != SUCCESS) {
+        signal RadioSender.error(RS_ERR_SEND_FAILED);
       }
     }
   }
-
-  event void AMSend.sendDone(message_t *msg, error_t error){
-    if (&pkt == msg) {
-      tracker[currentSequenceNumber] = 1;
-      busy = FALSE;
-    }
-    signal RadioSender.sendDone();
-  }
-
-
-  event void AMControl.stopDone(error_t error){
-  }
-
-
-  event void AMControl.startDone(error_t error){
+  
+  event void RadioControl.startDone(error_t error){
     if (error == SUCCESS) {
-      signal RadioSender.readyToSend();
-    }
-    else {
-       call AMControl.start();
+      currentState = STATE_READY;
+      signal RadioSender.initDone();
+    } else {
+      signal RadioSender.error(RS_ERR_INIT_FAILED);
     }
   }
-  
-  
-  void receiveRequest(DataPackage* package){
-    flipTacker(package->data);
-  }
-  
-  event message_t * Receive.receive(message_t *msg, void *payload, uint8_t len){
-      if (len == sizeof(DataPackage)) {
-        DataPackage* package = (DataPackage*)payload;
-        if(package->request == 1){
-          receiveRequest(package);
-        }
-        }
-        return msg;
-    }
 
-
-  command void RadioSender.send(uint8_t last, uint8_t request, uint8_t * data, uint8_t size){
-    sendOptionPackage(last, request, data, size);
+  event void RadioControl.stopDone(error_t error){
+    // TODO Auto-generated method stub
   }
-  
-  void setTracker(){
-    int i;
-    for(i = 0; i < DATA_SIZE;i++){
-      tracker[i] = 0;
+
+  event void RadioSend.sendDone[am_id_t msg_type](message_t *msg, error_t error){
+    if (error != SUCCESS) {
+      signal RadioSender.error(RS_ERR_SEND_FAILED);
+      return;
+    }
+    
+    atomic {
+      if (currentState == STATE_SENDING_PARTIAL_DATA) {
+        currentState = STATE_WAITING_PARTIAL_DATA_ACK;
+      } else if (currentState == STATE_SENDING_EOF) {
+        currentState = STATE_WAITING_EOF_ACK;
+      } else {
+        signal RadioSender.error(RS_ERR_INVALID_STATE);
       }
-  }
-  
-  command void RadioSender.start(){
-    setTracker();
-    call AMControl.start();
+    }
   }
 
+  event message_t * RadioReceive.receive[am_id_t msg_type](message_t *msg, void *payload, uint8_t len){
+    atomic {
+      if (currentState == STATE_WAITING_PARTIAL_DATA_ACK) {
+        if (msg_type == AM_MSG_ACK_PARTIAL_DATA) {
+          sendIndex = newSendIndex;
+          if (sendIndex < dataToSendLength) {
+            post sendNextPacketOverRadio();
+          } else {
+            currentState = STATE_READY;
+            signal RadioSender.sendDone();
+          }   
+        }
+      } else if (currentState == STATE_WAITING_EOF_ACK){
+        // TODO: Do something here
+        currentState = STATE_READY;
+      } else {
+        signal RadioSender.error(RS_ERR_INVALID_STATE);
+      }
+    }
+    return msg;
+  }
 }

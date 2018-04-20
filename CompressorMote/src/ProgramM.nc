@@ -4,7 +4,7 @@ module ProgramM{
     interface Leds;
     interface PCFileReceiver;
     interface OnlineCompressionAlgorithm as Compressor;
-    interface RadioSender2 as RadioSender;
+    interface RadioSender;
     interface ErrorIndicator;
   }
 }
