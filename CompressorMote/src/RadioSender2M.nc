@@ -101,7 +101,16 @@ implementation{
   }
 
   command void RadioSender2.sendEOF(){
-    // TODO Auto-generated method stub
+    atomic {
+      if (currentState != STATE_READY) {
+        signal RadioSender2.error(RS_ERR_INVALID_STATE);
+        return;
+      }
+      
+      if (call RadioSend.send[AM_MSG_EOF](AM_BROADCAST_ADDR, &pkt, 0) != SUCCESS) {
+        signal RadioSender2.error(RS_ERR_SEND_FAILED);
+      }
+    }
   }
   
   event void RadioControl.startDone(error_t error){

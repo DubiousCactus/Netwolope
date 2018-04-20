@@ -42,7 +42,7 @@ implementation{
   }
   
   event void Compressor.compressDone(){
-    call RadioSender.sendEOF();
+    //call RadioSender.sendEOF();
   }
 
   event void RadioSender.sendDone(){
@@ -51,7 +51,7 @@ implementation{
   }
 
   event void PCFileReceiver.error(PCFileReceiverError error){
-    //call ErrorIndicator.blinkRed(error);
+    call ErrorIndicator.blinkRed(error);
   }
   
   event void Compressor.error(CompressionError error){

@@ -146,8 +146,8 @@ implementation{
       signal PCFileReceiver.receivedData(buffer, bufferIndex);
     } else {
       sendAckMsg(AM_MSG_ACK_EOF, 0);
+      signal PCFileReceiver.fileEnd();
     }
-    signal PCFileReceiver.fileEnd();
   }
   
   command void PCFileReceiver.init(){
@@ -162,6 +162,7 @@ implementation{
         sendAckMsg(AM_MSG_ACK_PARTIAL_DATA, lastReceivedPayloadLength);
       } else if (state == STATE_PROCESSING_EOF) {
         sendAckMsg(AM_MSG_ACK_EOF, 0);
+        signal PCFileReceiver.fileEnd();
       }
     }
   }
