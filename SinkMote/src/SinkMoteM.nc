@@ -42,7 +42,7 @@ implementation{
   }
   event void RadioReceiver.receivedEOF(){
     call PCFileSender.sendEOF();
-    call RadioReceiver.sendEOFAckMsg();
+    //call RadioReceiver.sendEOFAckMsg();
   }
   
   event void PCFileSender.error(PCFileSenderError error){
