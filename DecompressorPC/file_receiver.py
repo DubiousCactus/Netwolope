@@ -87,9 +87,11 @@ class MoteFileReceiver:
         data = msg.data
         data_size = len(data)
         self.received_data_count += data_size
-        print('\n[*] Received data of size %s' % len(data))
+        #print('\n[*] Received data of size %s' % len(data))
         self.current_file.write(bytearray(data))
         self.current_file.flush()
+        sys.stdout.write('*')
+        sys.stdout.flush()
       elif packet.type == AM_MSG_EOF:
         print('\n[*] Received EOF.')
         msg = EndOfFileMsg(packet.data)
@@ -157,7 +159,7 @@ class MoteFileReceiver:
     original_size = self.begin_file_msg.size
     compressed_size = self.received_data_count
     compression_rate = original_size / float(compressed_size)
-    print 'Transferred file size: %s, original %s: Ratio: %s' % (original_size, compressed_size, compression_rate)
+    print 'Transferred file size: %s, original %s: Ratio: %s' % (compressed_size, original_size, compression_rate)
 
   def listen(self):
     self.wait_for_begin_file()
