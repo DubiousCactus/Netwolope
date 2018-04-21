@@ -12,42 +12,8 @@ module SinkMoteM @safe() {
   }
 }
 implementation{
-  enum {
-    MSG_QUEUE_CAPACITY = 10,
-    BUFFER_CAPACITY = 4096,
-    PAYLOAD_CAPACITY = 64,
-    PC_SEND_CAPACITY = 64
-  };
-  
-  uint8_t buffer[BUFFER_CAPACITY];
-  uint16_t bufferHead;
-  uint16_t bufferTail;
-  uint16_t bufferCount;
-  uint8_t lastSendBufferSize;
-  bool pcBusy;
-  bool receivedEOF = FALSE;
-  
-  task void sendNextDataToPC() {
-    atomic {
-      if (pcBusy == TRUE || bufferCount == 0) 
-        return;
-
-      pcBusy = TRUE;
-
-      if (bufferCount > PC_SEND_CAPACITY) {
-        lastSendBufferSize = PC_SEND_CAPACITY;
-      } else {
-        lastSendBufferSize = (uint8_t)bufferCount;
-      }
-      
-      call PCFileSender.sendPartialData(&(buffer[bufferHead]), lastSendBufferSize);
-    }
-  }
 
   event void Boot.booted(){
-    bufferHead = 0;
-    bufferTail = 0;
-    pcBusy = FALSE;
     call PCFileSender.init();
   }
   
@@ -65,52 +31,24 @@ implementation{
   }
 
   event void PCFileSender.beginFileSent(){
-    // TODO: 
+    call RadioReceiver.sendBeginFileAckMsg();
     call Leds.led1Toggle();
   }
-
   event void RadioReceiver.receivedData(uint8_t *data, uint8_t size){
-    uint8_t i;
-    atomic {
-      if (bufferCount + size > BUFFER_CAPACITY) {
-        // We should not attempt to add items to the
-        // buffer at this point. Signal an error.
-        call Leds.led0On();
-        return;
-      }
-
-      for (i = 0; i < size; i++) {
-        buffer[bufferTail] = data[i];
-        bufferTail = (bufferTail+1) % BUFFER_CAPACITY;
-      }
-
-      bufferCount = bufferCount + size;
-    }
-    
-    post sendNextDataToPC();
+    call PCFileSender.sendPartialData(data, size);
   }
-
   event void PCFileSender.partialDataSent(){
-    atomic {
-      pcBusy = FALSE;
-      bufferHead = (bufferHead + lastSendBufferSize) % BUFFER_CAPACITY;
-      bufferCount = bufferCount - lastSendBufferSize;
-    }
-    if (bufferCount > 0) {
-      post sendNextDataToPC();
-      
-    } else if (receivedEOF == TRUE) {
-      receivedEOF = FALSE;
-      call PCFileSender.sendEOF();
-    }
-    
-    call Leds.led2Toggle();
+    call RadioReceiver.sendPartialDataAckMsg();
+  }
+  event void RadioReceiver.receivedEOF(){
+    call PCFileSender.sendEOF();
+    call RadioReceiver.sendEOFAckMsg();
   }
   
   event void PCFileSender.error(PCFileSenderError error){
     switch (error) {
       case PFS_ERR_SEND_FAILED:
-        call ErrorTimer.startPeriodic(100);
+        call ErrorTimer.startPeriodic(500);
         break;
         
       case PFS_ERR_NOT_CONNECTED:
@@ -128,17 +66,6 @@ implementation{
   }
 
   event void RadioReceiver.error(RadioReceiverError error){
-    call ErrorTimer.startPeriodic(500);
+    call ErrorTimer.startPeriodic(2000);
   }
-
-  event void RadioReceiver.receivedEOF(){
-    atomic {
-      if (bufferCount == 0) {
-        call PCFileSender.sendEOF();
-      } else {
-        receivedEOF = TRUE;
-      }
-    }
-  }
-
 }

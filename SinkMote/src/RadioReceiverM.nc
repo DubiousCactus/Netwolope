@@ -26,20 +26,21 @@ implementation{
   
   message_t pkt;
   
-  void sendPartialDataAckMsg() {
+  task void sendPartialDataAckMsg() {
     if (call RadioSend.send[AM_MSG_ACK_PARTIAL_DATA](AM_BROADCAST_ADDR, &pkt, 0) != SUCCESS) {
-      signal RadioReceiver.error(RR_ERR_SEND_FAILED);
+      post sendPartialDataAckMsg();
     }
   }
   
-  void sendEOFAckMsg() {
+  task void sendEOFAckMsg() {
     if (call RadioSend.send[AM_MSG_ACK_EOF](AM_BROADCAST_ADDR, &pkt, 0) != SUCCESS) {
-      signal RadioReceiver.error(RR_ERR_SEND_FAILED);
+      post sendEOFAckMsg();
     }
   }
-  void sendBeginFileAckMsg() {
+  
+  task void sendBeginFileAckMsg() {
     if (call RadioSend.send[AM_MSG_ACK_BEGIN_FILE](AM_BROADCAST_ADDR, &pkt, 0) != SUCCESS) {
-      signal RadioReceiver.error(RR_ERR_SEND_FAILED);
+      post sendBeginFileAckMsg();
     }
   }
   
@@ -63,16 +64,25 @@ implementation{
     if (msg_type == AM_MSG_BEGIN_FILE) {
       BeginFileMsg* msg = (BeginFileMsg*)payload;
       signal RadioReceiver.receivedFileBegin(msg->uncompressedSize, msg->compressionType);
-      sendBeginFileAckMsg();
       
     } else if (msg_type == AM_MSG_PARTIAL_DATA) {
       signal RadioReceiver.receivedData((uint8_t*)payload, len);
-      sendPartialDataAckMsg();
     
     } else if (msg_type == AM_MSG_EOF) {
       signal RadioReceiver.receivedEOF();
-      sendEOFAckMsg();
     }
     return msg;
+  }
+
+  command void RadioReceiver.sendEOFAckMsg(){
+    post sendEOFAckMsg();
+  }
+
+  command void RadioReceiver.sendBeginFileAckMsg(){
+    post sendBeginFileAckMsg();
+  }
+
+  command void RadioReceiver.sendPartialDataAckMsg(){
+    post sendPartialDataAckMsg();
   }
 }
