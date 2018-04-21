@@ -80,12 +80,13 @@ implementation{
 		mean = Mean(data, length);
 
 		for(i=0; i<length; ++i){
-			standardDeviation += Powerfunction(data[i] - mean, 2);
+			standardDeviation += Powerfunction(data[i] - (uint8_t)mean, 2);
 		}
+		printf("Sd %d\n",(uint16_t)standardDeviation);
 		return root((float)standardDeviation/(float)length);
 	}
 	
-	void ReconstructImage(uint8_t *data,uint16_t length,float meanvalue){
+	void ConvertToSingleBit(uint8_t *data,uint16_t length,float meanvalue){
 		uint8_t i;
 		for(i = 0; i<length; i++){
 			if(data[i] > meanvalue){
@@ -96,6 +97,21 @@ implementation{
 			}
 		}
 	}
+	
+	uint8_t ConvertBitToByte(uint8_t *bits, uint8_t length){
+	  uint8_t val = 0;
+	  int i;
+
+		for(i=0; i<length; i++)
+		{
+		  val = val*2;
+		  val = val + bits[i];
+		}
+		printf("val %d\n",val);	  
+		//compressbuffer[i]
+		return val;
+	}
+
 	
 	command void OnlineCompressionAlgorithm.fileEnd(){
 		// TODO Auto-generated method stub
@@ -112,6 +128,7 @@ implementation{
 	command void OnlineCompressionAlgorithm.compress(uint8_t *data, uint16_t length){
 		uint8_t i;
 		uint8_t q=0;
+		uint8_t bits[8] = {1,1,1,1,1,1,1,1};
 		float sd,a,b,mean;
 		call Leds.led1On();
 	  	printf("Hi I am writing to you from my TinyOS application!!\n");
@@ -126,6 +143,7 @@ implementation{
 	  			q++;
   			}
 	  	}
+	  	printf("sd %d\n",(uint8_t)sd);
 	  	printf("testing sqrt %d\n",(uint8_t)(FloorSqrt((float)15)*(float)5));
 	  	printf("testing sqrt %d\n",(uint8_t)(root((float)15)*(float)5));
 	  		  		  	
@@ -134,11 +152,13 @@ implementation{
 
 	  	printf("a %d\n",(uint8_t)a);
 	  	printf("b %d\n",(uint8_t)b);
-	  	ReconstructImage(data,length,mean);
+	  	ConvertToSingleBit(data,length,mean);
 	  	for(i = 0; i < length; ++i){
 	  		printf("%d ",compressbuffer[i]);
 
-	  	}	  	
+	  	}
+	  	
+	  	ConvertBitToByte(bits,8);	  	
   		printfflush();
 	}
 
