@@ -85,7 +85,11 @@ implementation{
       }
       
       msg = (PartialDataMsg*)(call Packet.getPayload(&pkt, sizeof(PartialDataMsg)));
-      call Reader.readChunk(msg->data, (uint16_t)transferSize);
+      if (call Reader.readChunk(msg->data, (uint16_t)transferSize) != SUCCESS) {
+        signal RadioSender.error(RS_ERR_PROGRAMMER);
+        return;
+      }
+      
       currentState = STATE_SENDING_PARTIAL_DATA;
       if (call RadioSend.send[AM_MSG_PARTIAL_DATA](AM_BROADCAST_ADDR, &pkt, transferSize) != SUCCESS) {
         signal RadioSender.error(RS_ERR_SEND_FAILED);

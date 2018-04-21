@@ -27,7 +27,7 @@ implementation{
     
     avail = call InBuffer.available();
     
-    if (avail > BLOCK_SIZE) {
+    if (avail >= BLOCK_SIZE) {
       for (i = 0; i < BLOCK_SIZE; i++) {
         if (call InBuffer.read(&byte) == SUCCESS) {
           if (call OutBuffer.write(byte) != SUCCESS) 
