@@ -1,5 +1,5 @@
-#include "RadioHeader.h"
 #include "Timer.h"
+
 module RadioReceiverM{
   provides interface RadioReceiver;
   uses interface Packet;
