@@ -9,6 +9,9 @@ module ProgramM{
   }
 }
 implementation{
+  bool radioBusy = FALSE;
+  bool sendEof = FALSE;
+  
   event void Boot.booted(){
     call Compressor.init();
   }
@@ -34,8 +37,22 @@ implementation{
     call PCFileReceiver.sendFileBeginAck();
   }
   
-  event void PCFileReceiver.receivedData(uint8_t *data, uint16_t length){
-    call Compressor.compress(data, length);
+  event void PCFileReceiver.receivedData(){
+    call Compressor.compress();
+  }
+  
+  event void Compressor.compressed(){
+    radioBusy = TRUE;
+    call RadioSender.sendPartialData();
+  }
+
+  event void RadioSender.sendDone(){
+    radioBusy = FALSE;
+    call PCFileReceiver.receiveMore();
+    if (sendEof == TRUE) {
+      call RadioSender.sendEOF();
+      sendEof = FALSE;
+    }
   }
   
   event void PCFileReceiver.fileEnd(){
@@ -43,16 +60,12 @@ implementation{
     call Compressor.fileEnd();
   }
   
-  event void Compressor.compressed(uint8_t *compressedData, uint16_t length){
-    call RadioSender.sendPartialData(compressedData, length);
-  }
-  
   event void Compressor.compressDone(){
-    call RadioSender.sendEOF();
-  }
-
-  event void RadioSender.sendDone(){
-    call PCFileReceiver.receiveMore();
+    if (radioBusy == TRUE) {
+      sendEof = TRUE;
+    } else {
+      call RadioSender.sendEOF();
+    }
   }
 
   event void PCFileReceiver.error(PCFileReceiverError error){
@@ -66,5 +79,4 @@ implementation{
   event void RadioSender.error(RadioSenderError error){
     call ErrorIndicator.blinkRed(error);
   }
-
 }

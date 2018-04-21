@@ -8,6 +8,7 @@ module RadioSenderM{
   uses interface AMSend as RadioSend[am_id_t msg_type];
   uses interface Receive as RadioReceive[am_id_t msg_type];
   uses interface SplitControl as RadioControl;
+  uses interface CircularBufferReader as Reader;
 }
 implementation{
   enum {
@@ -23,7 +24,7 @@ implementation{
   };
   
   typedef enum {
-    STATE_NOT_READY,
+    STATE_NOT_READY = 2,
     STATE_READY,
     STATE_SENDING_BEGIN_FILE,
     STATE_SENDING_PARTIAL_DATA,
@@ -48,45 +49,8 @@ implementation{
     nx_uint8_t data[PACKET_CAPACITY];
   } PartialDataMsg;
   
-  
-  uint8_t *dataToSend;
-  uint16_t dataToSendLength;
-  uint16_t sendIndex;
-  uint16_t newSendIndex;
   message_t pkt;
-  
-  void sendDataOverRadio(am_id_t msg_type, uint8_t* buffer, uint8_t bufferSize) {
-    uint8_t i;
-    PartialDataMsg* msg = (PartialDataMsg*)(call Packet.getPayload(&pkt, sizeof(PartialDataMsg)));
-    if (bufferSize > PACKET_CAPACITY) {
-      signal RadioSender.error(RS_ERR_PROGRAMMER);
-      return;
-    }
-    for (i = 0; i < bufferSize; i++) {
-      msg->data[i] = buffer[i];
-    }
-    if (call RadioSend.send[msg_type](AM_BROADCAST_ADDR, &pkt, bufferSize) != SUCCESS) {
-      signal RadioSender.error(RS_ERR_SEND_FAILED);
-    }
-  }
-  
-  task void sendNextPacketOverRadio() {
-    uint8_t bufferSize;
-    atomic {
-      if (sendIndex == dataToSendLength){
-        signal RadioSender.error(RS_ERR_INIT_FAILED);
-        return;
-      }
-      currentState = STATE_SENDING_PARTIAL_DATA;
-      if (sendIndex + PACKET_CAPACITY > dataToSendLength) {
-        bufferSize = (uint8_t)(dataToSendLength - sendIndex);
-      } else {
-        bufferSize = PACKET_CAPACITY;
-      }
-      newSendIndex = sendIndex + bufferSize;
-      sendDataOverRadio(AM_MSG_PARTIAL_DATA, &(dataToSend[sendIndex]), bufferSize);
-    }
-  }
+
 
   command void RadioSender.init(){
     call RadioControl.start();
@@ -102,19 +66,33 @@ implementation{
     }
   }
 
-  command void RadioSender.sendPartialData(uint8_t *buffer, uint16_t bufferSize){
-    atomic {
-      if (currentState != STATE_READY) {
-        signal RadioSender.error(RS_ERR_INVALID_STATE);
-        return;
-      }
-      
-      dataToSend = buffer;
-      dataToSendLength = bufferSize;
-      sendIndex = 0;
+  command void RadioSender.sendPartialData(){
+    uint8_t transferSize = 0;
+    uint16_t availableBytes = 0;
+    PartialDataMsg* msg;
+    
+    if (currentState != STATE_READY) {
+      signal RadioSender.error(RS_ERR_INVALID_STATE);
+      return;
     }
     
-    post sendNextPacketOverRadio();
+    availableBytes = call Reader.available();
+    if (availableBytes > 0) {
+      if (availableBytes > PACKET_CAPACITY) {
+        transferSize = PACKET_CAPACITY;
+      } else {
+        transferSize = availableBytes;
+      }
+      
+      msg = (PartialDataMsg*)(call Packet.getPayload(&pkt, sizeof(PartialDataMsg)));
+      call Reader.readChunk(msg->data, (uint16_t)transferSize);
+      currentState = STATE_SENDING_PARTIAL_DATA;
+      if (call RadioSend.send[AM_MSG_PARTIAL_DATA](AM_BROADCAST_ADDR, &pkt, transferSize) != SUCCESS) {
+        signal RadioSender.error(RS_ERR_SEND_FAILED);
+      }
+    } else {
+      signal RadioSender.sendDone();
+    }
   }
 
   command void RadioSender.sendEOF(){
@@ -167,13 +145,8 @@ implementation{
     atomic {
       if (currentState == STATE_WAITING_PARTIAL_DATA_ACK) {
         if (msg_type == AM_MSG_ACK_PARTIAL_DATA) {
-          sendIndex = newSendIndex;
-          if (sendIndex < dataToSendLength) {
-            post sendNextPacketOverRadio();
-          } else {
-            currentState = STATE_READY;
-            signal RadioSender.sendDone();
-          }   
+          currentState = STATE_READY;
+          signal RadioSender.sendDone();
         }
       } else if (currentState == STATE_WAITING_EOF_ACK){
         // TODO: Do something here
