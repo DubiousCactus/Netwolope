@@ -145,7 +145,7 @@ class MoteFileReceiver:
   def decompress(self):
     compr_type = self.begin_file_msg.type
     if compr_type == COMPRESSION_TYPE_NONE:
-      os.rename(self.file_name, self.decompressed_file_path)
+      os.rename(self.file_path, self.decompressed_file_path)
     elif compr_type == COMPRESSION_TYPE_RUN_LENGTH:
       self.decompress_run_length()
     else:
