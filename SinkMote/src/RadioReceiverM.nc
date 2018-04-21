@@ -62,8 +62,8 @@ implementation{
 
   event message_t * RadioReceive.receive[am_id_t msg_type](message_t *msg, void *payload, uint8_t len){
     if (msg_type == AM_MSG_BEGIN_FILE) {
-      BeginFileMsg* msg = (BeginFileMsg*)payload;
-      signal RadioReceiver.receivedFileBegin(msg->uncompressedSize, msg->compressionType);
+      BeginFileMsg* bfmsg = (BeginFileMsg*)payload;
+      signal RadioReceiver.receivedFileBegin(bfmsg->uncompressedSize, bfmsg->compressionType);
       
     } else if (msg_type == AM_MSG_PARTIAL_DATA) {
       signal RadioReceiver.receivedData((uint8_t*)payload, len);
