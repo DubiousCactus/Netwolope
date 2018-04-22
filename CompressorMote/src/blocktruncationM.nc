@@ -6,10 +6,10 @@ module blocktruncationM{
 	uses interface Leds;
 }
 implementation{
-	uint8_t compressbuffer[16]; 	// (encoder) converted to single bit (only 1 and 0)
+	uint8_t compressbuffer[64]; 	// (encoder) converted to single bit (only 1 and 0)
 	uint8_t binarybuffer[8];		// convert bytes to bits (e.g. 255 -> 11111111)
-	uint8_t decompressbuffer[16];	// (decoder) converted to single bit (only 1 and 0)
-	uint8_t decodebuffer[16];		// reconstructed block corresponding to a and b
+	uint8_t decompressbuffer[64];	// (decoder) converted to single bit (only 1 and 0)
+	uint8_t decodebuffer[64];		// reconstructed block corresponding to a and b
 
 	/* Calculate A^B */
 	float Powerfunction(float A, uint16_t B){
@@ -170,10 +170,6 @@ implementation{
 	  	/* Convert byte to bit (e.g. 255 to 11111111) 
 	  	 * binarybuffer will be updated
 	  	 * */
-	  	 printf("hello \n");	
-	  	 printf("p%d \n",dcompLength);
-	  	 PrintArray(datacompressed,dcompLength+1);
-	  	 printf("hello \n");
 	  	DecoderConvertByteToBit(datacompressed[j]);
 	  	for(i = 0; i<(dcompLength-1)*8; i++){
 		  	decompressbuffer[i] = binarybuffer[n];
@@ -207,6 +203,7 @@ implementation{
 		uint8_t q=0;
 		uint8_t sendcompressedpackage[2+length/8]; //****** size should be changed
 		uint8_t bits[8] = {1,1,1,1,1,1,1,1};
+		uint8_t testbuffer[5] = {1,2,3,4,5};
 		float sd,a,b,mean;
 	  	printf("Compress image!!\n");
 	  	/*
@@ -225,13 +222,8 @@ implementation{
 	  	}
 	  	/* Reconstruction values a and b */	 
 	  	a = mean - sd*SquareRoot((float)q/(float)(length-q));
-	  	b = mean + sd*SquareRoot((float)(length-q)/(float)q);
-	  	printf("sd %d\n",(uint8_t)sd);
-	  	printf("q %d, length %d\n",q,length);
-	  	printf("sqrt %d \n",(uint8_t)(Root((float)q/(float)(length-q))*100));
-	  	printf("new sqrt %d \n",(uint8_t)(Root((float)7/(float)9)*100));
-	  	printf("nesc %d \n",(uint8_t)(isqrt((short)7/(short)9)*100));
-	  	printf("mikkel sqrt %d \n",(uint8_t)(SquareRoot((float)7/(float)9)*100));
+	  	b = mean + sd*SquareRoot((float)(length-q)/(float)q);	  	
+
 	  	/* convert data array to 1's and 0's */
 	  	EncoderConvertToSingleBit(data,length,mean);
 	  	
@@ -262,13 +254,12 @@ implementation{
 	  	Decompress(sendcompressedpackage, p);
 	  	
 	  	/*For testing*/
-	  	/*printf("mean %d, sd %d, a %d, b %d\n",(uint8_t)mean,(uint8_t)sd,(uint8_t)a,(uint8_t)b);
-	  	printf("new std %d \n",(uint8_t)std_var_stable(data, 16));
 	  	PrintArray(data,length);
 	  	PrintArray(compressbuffer,length);
 	  	PrintArray(sendcompressedpackage,p+1);
 	  	PrintArray(decompressbuffer,length);
-	  	PrintArray(decodebuffer,length);*/
+	  	PrintArray(decodebuffer,length);
+	  	printf("Test of STD %d",(uint8_t)(StandardDeviation(testbuffer,5)*100));
  	
   		printfflush();
 	}
