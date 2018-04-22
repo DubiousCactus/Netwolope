@@ -51,6 +51,14 @@ class MoteFileSender:
   def __init__(self):
     self.am = tos.AM()
 
+  def show_progress(self, iteration, total, bar_length=50):
+    percent = int(round((iteration / float(total)) * 100))
+    nb_bar_fill = int(round((bar_length * percent) / 100))
+    bar_fill = '#' * nb_bar_fill
+    bar_empty = ' ' * (bar_length - nb_bar_fill)
+    sys.stdout.write("\r  [%s] %s%%" % (str(bar_fill + bar_empty), percent))
+    sys.stdout.flush()
+
   def send_message(self, msg, msg_type, ack_type, num_retries = 10):
     #sleep(1)
     counter = 0
@@ -58,7 +66,7 @@ class MoteFileSender:
     resp = self.am.read(timeout=5)
     if resp:
       if resp.type == ack_type:
-        print ' [*] Received expected acknowledgement: ', resp
+        #print ' [*] Received expected acknowledgement: ', resp
         return
       else:
         print ' [!] Received unexpected packet', resp
@@ -81,17 +89,20 @@ class MoteFileSender:
     f.close()
     counter = 1
     i = 0
-    while i < len(self.data_bytes):
+    n_bytes = len(self.data_bytes)
+    while i < n_bytes:
       bytes_to_send = self.data_bytes[i: i+PACKET_CAPACITY]
-      print(' [*] Sending packet #%s' % counter)
+      #print(' [*] Sending packet #%s' % counter)
+      self.show_progress(i, n_bytes)
       self.send_next_packet(bytes_to_send)
       i = i + len(bytes_to_send)
       counter += 1
 
   def send_eof(self):
-    print ' [*] Sending EOF'
+    #print ' [*] Sending EOF'
     msg = EndOfFileMsg((self.file_size, ))
     self.send_message(msg, AM_MSG_EOF, AM_MSG_ACK_END_TRANSMIT)
+    self.show_progress(100, 100)
 
   def send(self, file_name):
     self.file_name = file_name
