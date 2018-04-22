@@ -1,5 +1,7 @@
 #include "StorageVolumes.h"
+//#include "printf.h"
 
+#define COMPRESSION_NONE
 
 configuration ProgramC{
 }
@@ -14,11 +16,11 @@ implementation{
   components new TimerMilliC() as Timer0;
   components PCFileReceiverM;
   components RadioSenderM;
-  components NoCompressionM;
+  
   components ErrorIndicatorM;
   components new CircularBufferM(1024) as UncompressedBuffer;
-  components new CircularBufferM(1024) as CompressedBuffer;
-//  components FlashStorageM;
+  components new CircularBufferM(2048) as CompressedBuffer;
+  components FlashStorageM;
 
   PCFileReceiverM.SerialControl -> Serial;
   PCFileReceiverM.SerialPacket -> Serial;
@@ -27,12 +29,10 @@ implementation{
   PCFileReceiverM.SerialReceive -> Serial.Receive;
   PCFileReceiverM.Writer -> UncompressedBuffer;
   
-  NoCompressionM.InBuffer -> UncompressedBuffer;
-  NoCompressionM.OutBuffer -> CompressedBuffer;
-
-//  FlashStorageM.BlockRead -> BlockStorage;
-//  FlashStorageM.BlockWrite -> BlockStorage;
-//  FlashStorageM.Leds -> LedsC;
+  FlashStorageM.ReadBuffer -> UncompressedBuffer;
+  FlashStorageM.WriteBuffer -> UncompressedBuffer;
+  FlashStorageM.BlockRead -> BlockStorage;
+  FlashStorageM.BlockWrite -> BlockStorage;
 
   RadioSenderM.Packet -> Radio;
   RadioSenderM.AMPacket -> Radio;
@@ -48,6 +48,29 @@ implementation{
   ProgramM.Leds -> LedsC;
   ProgramM.RadioSender -> RadioSenderM;
   ProgramM.PCFileReceiver -> PCFileReceiverM;
-  ProgramM.Compressor -> NoCompressionM;
   ProgramM.ErrorIndicator -> ErrorIndicatorM;
+  ProgramM.FlashReader -> FlashStorageM;
+  ProgramM.FlashWriter -> FlashStorageM;
+  ProgramM.FlashError -> FlashStorageM;
+  ProgramM.UncompressedBufferReader -> UncompressedBuffer;
+  ProgramM.UncompressedBufferWriter -> UncompressedBuffer;
+  
+  
+  #ifdef COMPRESSION_NONE
+  components NoCompressionM;
+  
+  NoCompressionM.InBuffer -> UncompressedBuffer;
+  NoCompressionM.OutBuffer -> CompressedBuffer;
+  
+  ProgramM.Compressor -> NoCompressionM;
+  #endif
+  
+  #ifdef COMPRESSION_RUN_LENGTH
+  components RunLengthEncoderM;
+  
+  RunLengthEncoderM.InBuffer -> UncompressedBuffer;
+  RunLengthEncoderM.OutBuffer -> CompressedBuffer;
+  
+  FlashTestM.Compressor -> RunLengthEncoderM;
+  #endif
 }
