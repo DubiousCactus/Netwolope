@@ -40,7 +40,7 @@ implementation {
   RadioSenderM.RadioReceive -> Radio.Receive;
   RadioSenderM.RadioControl -> Radio;
 
-  ErrorIndicatorM.BlinkTimer -> Timer0;
+  ErrorIndicatorM.BlinkTimer -> Timer;
   ErrorIndicatorM.Leds -> LedsC;
   
   ProgramM.Boot -> MainC;

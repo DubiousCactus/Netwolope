@@ -12,6 +12,8 @@ module ProgramM{
   }
 }
 implementation{
+  uint8_t init = 0;
+
   event void Boot.booted(){
     call Timer.startPeriodic(1500);
     call Compressor.init();
@@ -19,7 +21,6 @@ implementation{
 
   event void Timer.fired() {
     uint8_t i;
-    printf("\nTimer fired\n");
     if (init) {
       uint8_t data[25] = {
         0x41, 0x42, 0x43, 0x44, 0x45,
@@ -29,12 +30,12 @@ implementation{
         0x41, 0x42, 0x43, 0x44, 0x45
       };
       call Leds.led1Toggle();
-      printf("\nFaking input buffer:\n");
+      printf("\nFaking input buffer of size 25:\n");
       for (i = 0; i < 25; i++) {
         if (i % 5 == 0)
           printf("\n");
 
-        printf("0x%X ", data[i]);
+        printf("0x%02X ", data[i]);
       }
 
       printf("\n\n");
@@ -76,21 +77,17 @@ implementation{
   
   event void Compressor.compressed(uint8_t *compressedData, uint16_t length) {
     uint8_t i;
-    atomic {
-      dataToSend = compressedData;
-      dataToSendLength = length;
-      sendIndex = 0;
-    }
     call Leds.led2On();
     printf("Done compressing batch\n");
-    printf("Compressed %d bytes\n", length);   
+    printf("Compressed size: %d bytes\n", length);   
     for (i = 0; i < length; i++) {
         if (i % 5 == 0)
           printf("\n");
 
-        printf("%X ", compressedData[i]);
+        printf("0x%02X ", compressedData[i]);
     }
-
+    printf("\n\n");
+    printfflush();
 
     /* call RadioSender.sendPartialData(compressedData, length); */
   }
@@ -103,6 +100,10 @@ implementation{
 
   event void RadioSender.sendDone(){
     call PCFileReceiver.receiveMore();
+  }
+
+  event void RadioSender.error(RadioSenderError error) {
+    //call ErrorIndicator.blinkRed(error);
   }
 
   event void PCFileReceiver.error(PCFileReceiverError error){

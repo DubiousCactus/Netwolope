@@ -47,13 +47,11 @@ module RossCompressionM {
 			if (i % 5 == 0)
 			  printf("\n");
 
-			printf("0x%X ", data[i]);
+			printf("0x%02X ", data[i]);
 		}
 		printf("\n\n");
 		printfflush();
 
-		printf("in_idx = %p\ndata_end = %p\n", in_idx, data_end);
-		
 		/* skip the compression for a small buffer */
 		if (length <= 18) {
 			memcpy(outbuff, data, length);
