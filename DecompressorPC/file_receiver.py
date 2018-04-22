@@ -79,6 +79,14 @@ class MoteFileReceiver:
   def __init__(self):
     self.am = tos.AM()
 
+  def show_progress(self, iteration, total, bar_length=50):
+    percent = int(round((iteration / float(total)) * 100))
+    nb_bar_fill = int(round((bar_length * percent) / 100))
+    bar_fill = '#' * nb_bar_fill
+    bar_empty = ' ' * (bar_length - nb_bar_fill)
+    sys.stdout.write("\r  [%s] %s%%" % (str(bar_fill + bar_empty), percent))
+    sys.stdout.flush()
+
   def wait_for_data(self):
     while True:
       packet = self.am.read()
@@ -90,12 +98,12 @@ class MoteFileReceiver:
         #print('\n[*] Received data of size %s' % len(data))
         self.current_file.write(bytearray(data))
         self.current_file.flush()
-        sys.stdout.write('*')
-        sys.stdout.flush()
+        self.show_progress(self.received_data_count, self.file_size)
       elif packet.type == AM_MSG_EOF:
-        print('\n[*] Received EOF.')
+        #print('\n[*] Received EOF.')
         msg = EndOfFileMsg(packet.data)
         self.current_file.close()
+        self.show_progress(100, 100)
         return
       else:
         print('\n[!] Received an unknown packet: %s' % packet)
@@ -124,6 +132,7 @@ class MoteFileReceiver:
 
         # Store the message for later use.
         self.begin_file_msg = msg
+        self.file_size = msg.size
         self.received_data_count = 0
         return
       else:
