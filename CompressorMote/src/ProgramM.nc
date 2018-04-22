@@ -1,3 +1,5 @@
+#include "printf.h"
+
 module ProgramM{
   uses {
     interface Boot;
@@ -6,6 +8,7 @@ module ProgramM{
     interface OnlineCompressionAlgorithm as Compressor;
     interface RadioSender;
     interface ErrorIndicator;
+    interface Timer<TMilli> as Timer;
   }
 }
 implementation{
@@ -15,6 +18,7 @@ implementation{
   
   uint8_t temp[RADIO_DATA_CAPACITY];
   uint8_t *dataToSend;
+  uint8_t init = 0;
   uint16_t dataToSendLength;
   uint16_t sendIndex;
   uint16_t newSendIndex;
@@ -43,11 +47,42 @@ implementation{
   event void Boot.booted() {
     dataToSendLength = 0;
     sendIndex = 0;
+    call Timer.startPeriodic(1500);
     call Compressor.init();
+  }
+
+  event void Timer.fired() {
+    uint8_t i;
+    printf("\nTimer fired\n");
+    if (init) {
+      uint8_t data[25] = {
+        0x41, 0x42, 0x43, 0x44, 0x45,
+        0x41, 0x42, 0x43, 0x44, 0x45,
+        0x41, 0x42, 0x43, 0x44, 0x45,
+        0x41, 0x42, 0x43, 0x44, 0x45,
+        0x41, 0x42, 0x43, 0x44, 0x45
+      };
+      call Leds.led1Toggle();
+      printf("\nFaking input buffer:\n");
+      for (i = 0; i < 25; i++) {
+        if (i % 5 == 0)
+          printf("\n");
+
+        printf("0x%X ", data[i]);
+      }
+
+      printf("\n\n");
+      printfflush();
+
+      call Compressor.compress(data, 25);
+      init = 0;
+    }
   }
   
   event void Compressor.initDone() {
-    call Leds.led1On();
+    /*call PCFileReceiver.init();*/
+    printf("Compressor initialized !\n");
+    init = 1;
     /*call RadioSender.start();*/
   }
   
@@ -57,7 +92,6 @@ implementation{
   }
   
   event void PCFileReceiver.initDone() { 
-     call Leds.led2On();
   }
   
   event void PCFileReceiver.fileBegin(uint32_t totalLength) {
@@ -65,7 +99,8 @@ implementation{
   }
   
   event void PCFileReceiver.receivedData(uint8_t *data, uint16_t length) {
-    call Leds.led1Off();
+    /*call Leds.led1On();*/
+    printf("Received data over serial\nCompressing data...\n");
     call Compressor.compress(data, length);
   }
   
@@ -74,25 +109,34 @@ implementation{
   }
   
   event void Compressor.compressed(uint8_t *compressedData, uint16_t length) {
+    uint8_t i;
     atomic {
       dataToSend = compressedData;
       dataToSendLength = length;
       sendIndex = 0;
     }
     call Leds.led2On();
-    
-    /* Send over serial */
+    printf("Done compressing batch\n");
+    printf("Compressed %d bytes\n", length);   
+    for (i = 0; i < length; i++) {
+        if (i % 5 == 0)
+          printf("\n");
+
+        printf("%X ", compressedData[i]);
+    }
+
 
     /*post sendNextPacketOverRadio();*/
   }
   
   event void Compressor.compressDone() {
-    call Leds.led2On();
+    /*call Leds.led2On();*/
     /*call RadioSender.send(1, 0, temp, 0);*/
+    printf("Compression done!");
   }
 
   event void RadioSender.sendDone() {
-    call Leds.led2On();
+    /*call Leds.led2On();*/
     atomic {
       sendIndex = newSendIndex;
       if (sendIndex < dataToSendLength) {

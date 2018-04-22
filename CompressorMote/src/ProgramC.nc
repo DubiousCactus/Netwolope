@@ -1,12 +1,18 @@
+#define NEW_PRINTF_SEMANTICS
+
+#include "printf.h"
 #include "StorageVolumes.h"
 
 configuration ProgramC {
 }
 implementation {
   components MainC;
+  components PrintfC;
+  components SerialStartC;
   components LedsC;
   components ProgramM;
   components SerialActiveMessageC as Serial;
+  components new TimerMilliC() as Timer;
   
   components ActiveMessageC as Radio;
   components new AMSenderC(6) as AMSender;
@@ -48,5 +54,6 @@ implementation {
   ProgramM.PCFileReceiver -> PCFileReceiverM;
   ProgramM.Compressor -> RossCompressionM;
   ProgramM.ErrorIndicator -> ErrorIndicatorM;
+  ProgramM.Timer -> Timer;
 //  ProgramM.FlashStorage -> FlashStorageM;
 }
