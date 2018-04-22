@@ -1,17 +1,18 @@
 #include "OnlineCompressionAlgorithm.h"
 #include "printf.h"
 
-#define HASH_LEN  12    /* # hash table entries (at least 4 times smaller than the buffer size) */
-#define BUFF_LEN  25    /* Output buffer size (should be roughly equal to the input buffer size */
+#define HASH_LEN  24    /* # hash table entries (at least 4 times smaller than the buffer size) */
+#define BUFF_LEN  50    /* Output buffer size (should be roughly equal to the input buffer size */
 
 module RossCompressionM {
 	provides interface OnlineCompressionAlgorithm;
 } implementation {
 
 	uint8_t *hash_tbl[HASH_LEN];        /* hash table */
-	uint16_t hash_len = HASH_LEN;
+	uint16_t hash_len;
 	
 	command void OnlineCompressionAlgorithm.init() {
+		hash_len = HASH_LEN;
 		signal OnlineCompressionAlgorithm.initDone();
 	}
 
@@ -40,17 +41,6 @@ module RossCompressionM {
 		uint16_t ctrl_cnt = 0;
 		uint8_t *out_idx = outbuff + sizeof(uint16_t);
 		uint8_t *outbuff_end = outbuff + (length - 48);
-
-		uint8_t i;
-		printf("Inside OnlineCompressionAlgorithm()\n");
-		for (i = 0; i < length; i++) {
-			if (i % 5 == 0)
-			  printf("\n");
-
-			printf("0x%02X ", data[i]);
-		}
-		printf("\n\n");
-		printfflush();
 
 		/* skip the compression for a small buffer */
 		if (length <= 18) {

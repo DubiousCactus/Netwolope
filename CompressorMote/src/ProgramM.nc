@@ -22,16 +22,20 @@ implementation{
   event void Timer.fired() {
     uint8_t i;
     if (init) {
-      uint8_t data[25] = {
+      uint8_t data[50] = {
+        0x41, 0x42, 0x43, 0x44, 0x45,
+        0x41, 0x42, 0x43, 0x44, 0x45,
+        0x41, 0x42, 0x43, 0x44, 0x45,
+        0x41, 0x42, 0x43, 0x44, 0x45,
+        0x41, 0x42, 0x43, 0x44, 0x45,
         0x41, 0x42, 0x43, 0x44, 0x45,
         0x41, 0x42, 0x43, 0x44, 0x45,
         0x41, 0x42, 0x43, 0x44, 0x45,
         0x41, 0x42, 0x43, 0x44, 0x45,
         0x41, 0x42, 0x43, 0x44, 0x45
       };
-      call Leds.led1Toggle();
-      printf("\nFaking input buffer of size 25:\n");
-      for (i = 0; i < 25; i++) {
+      printf("\nFaking input buffer of size 50:\n");
+      for (i = 0; i < 50; i++) {
         if (i % 5 == 0)
           printf("\n");
 
@@ -41,16 +45,16 @@ implementation{
       printf("\n\n");
       printfflush();
 
-      call Compressor.compress(data, 25);
+      call Compressor.compress(data, 50);
       init = 0;
     }
   }
   
   event void Compressor.initDone() {
-    /*call PCFileReceiver.init();*/
+    call PCFileReceiver.init();
     printf("Compressor initialized !\n");
     init = 1;
-    /*call RadioSender.init();*/
+    call RadioSender.init();
   }
   
   event void RadioSender.initDone(){
@@ -77,7 +81,6 @@ implementation{
   
   event void Compressor.compressed(uint8_t *compressedData, uint16_t length) {
     uint8_t i;
-    call Leds.led2On();
     printf("Done compressing batch\n");
     printf("Compressed size: %d bytes\n", length);   
     for (i = 0; i < length; i++) {
@@ -89,12 +92,12 @@ implementation{
     printf("\n\n");
     printfflush();
 
-    /* call RadioSender.sendPartialData(compressedData, length); */
+     call RadioSender.sendPartialData(compressedData, length); 
   }
   
   event void Compressor.compressDone() {
-    /*call Leds.led2On();*/
-    /*call RadioSender.sendEOF();*/
+    call Leds.led2On();
+    call RadioSender.sendEOF();
     printf("Compression done!");
   }
 
@@ -111,6 +114,6 @@ implementation{
   }
   
   event void Compressor.error(CompressionError error) {
-    call Leds.led0On();
+    call ErrorIndicator.blinkRed(error);
   }
 }
