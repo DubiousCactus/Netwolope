@@ -1,6 +1,8 @@
 #include "StorageVolumes.h"
 //#include "printf.h"
 
+#define COMPRESSION_RUN_LENGTH
+
 configuration FlashTestC{
 }
 implementation{
@@ -14,7 +16,7 @@ implementation{
   components new TimerMilliC() as Timer0;
   components PCFileReceiverM;
   components RadioSenderM;
-  components NoCompressionM;
+  
   components ErrorIndicatorM;
   components new CircularBufferM(1024) as UncompressedBuffer;
   components new CircularBufferM(1024) as CompressedBuffer;
@@ -31,10 +33,6 @@ implementation{
   FlashStorageM.WriteBuffer -> UncompressedBuffer;
   FlashStorageM.BlockRead -> BlockStorage;
   FlashStorageM.BlockWrite -> BlockStorage;
-    
-  NoCompressionM.InBuffer -> UncompressedBuffer;
-  NoCompressionM.OutBuffer -> CompressedBuffer;
-
 
   RadioSenderM.Packet -> Radio;
   RadioSenderM.AMPacket -> Radio;
@@ -50,11 +48,29 @@ implementation{
   FlashTestM.Leds -> LedsC;
   FlashTestM.RadioSender -> RadioSenderM;
   FlashTestM.PCFileReceiver -> PCFileReceiverM;
-  FlashTestM.Compressor -> NoCompressionM;
   FlashTestM.ErrorIndicator -> ErrorIndicatorM;
   FlashTestM.FlashReader -> FlashStorageM;
   FlashTestM.FlashWriter -> FlashStorageM;
   FlashTestM.FlashError -> FlashStorageM;
   FlashTestM.UncompressedBufferReader -> UncompressedBuffer;
   FlashTestM.UncompressedBufferWriter -> UncompressedBuffer;
+  
+  
+  #ifdef COMPRESSION_NONE
+  components NoCompressionM;
+  
+  NoCompressionM.InBuffer -> UncompressedBuffer;
+  NoCompressionM.OutBuffer -> CompressedBuffer;
+  
+  FlashTestM.Compressor -> NoCompressionM;
+  #endif
+  
+  #ifdef COMPRESSION_RUN_LENGTH
+  components RunLengthEncoderM;
+  
+  RunLengthEncoderM.InBuffer -> UncompressedBuffer;
+  RunLengthEncoderM.OutBuffer -> CompressedBuffer;
+  
+  FlashTestM.Compressor -> RunLengthEncoderM;
+  #endif
 }
