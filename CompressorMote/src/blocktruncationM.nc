@@ -12,8 +12,8 @@ implementation{
 	uint8_t decodebuffer[16];		// reconstructed block corresponding to a and b
 
 	/* Calculate A^B */
-	uint16_t Powerfunction(uint16_t A, uint16_t B){
-		uint16_t ans = A;
+	float Powerfunction(float A, uint16_t B){
+		float ans = A;
 		uint16_t i = 1;
 		while(i < B){
 			ans = ans * A;
@@ -37,7 +37,7 @@ implementation{
 	  float lo = 0, hi = n, mid;
 	  int i;
 	  for(i = 0 ; i < 1000 ; i++){
-	      mid = (lo+hi)/2;
+	      mid = (float)((lo+hi)/2);
 	      if(mid*mid == n) return mid;
 	      if(mid*mid > n){
 	          hi = mid;
@@ -46,7 +46,26 @@ implementation{
 	      }
 	  }
 	  return mid;
-	}	
+	}
+	short isqrt(short num) {
+	   short res = 0;
+	   short bit = 1 << 14; // The second-to-top bit is set: 1 << 30 for 32 bits
+	
+	   // "bit" starts at the highest power of four <= the argument.
+	   while (bit > num)
+	       bit >>= 2;
+	       
+	   while (bit != 0) {
+	       if (num >= res + bit) {
+	           num -= res + bit;
+	           res = (res >> 1) + bit;
+	       }
+	       else
+	           res >>= 1;
+	       bit >>= 2;
+	   }
+	   return res;
+	}		
 	
 	/*Calculate mean of the data array */
 	float Mean(uint8_t *data, uint16_t length){
@@ -62,16 +81,30 @@ implementation{
 	
 	/*Calculate standard deviation of the data array */
 	float StandardDeviation(uint8_t *data, uint16_t length){
-		uint16_t standardDeviation = 0;
+		float standardDeviation = 0;
 		uint8_t i;
 		float mean;
 		mean = Mean(data, length);
 
 		for(i=0; i<length; ++i){
-			standardDeviation += Powerfunction(data[i] - (uint8_t)mean, 2);
+			standardDeviation += Powerfunction(data[i] - mean, 2);
 		}
 		return SquareRoot((float)standardDeviation/(float)length);
 	}
+	
+	float std_var_stable (uint8_t *a, uint16_t n) {
+	   uint8_t i =0;
+	   float mean = 0;
+	   float M2 = 0;
+	   float delta;
+	   if (n == 0) return 0;
+	   for(i = 0; i < n; ++i) {
+	      delta = a[i] - mean;
+	      mean += delta / (float)(i + 1);
+	      M2 += delta * (float)(a[i] - mean);
+	   }
+	   return M2/(float)n;
+	}	
 	
 	void EncoderConvertToSingleBit(uint8_t *data,uint16_t length,float meanvalue){
 		uint8_t i;
@@ -130,6 +163,31 @@ implementation{
 		}
 		printf("\n");
 	}
+	
+	void Decompress(uint8_t *datacompressed, uint8_t dcompLength){
+		uint8_t j=2, i,n=0;
+		
+	  	/* Convert byte to bit (e.g. 255 to 11111111) 
+	  	 * binarybuffer will be updated
+	  	 * */
+	  	 printf("hello \n");	
+	  	 printf("p%d \n",dcompLength);
+	  	 PrintArray(datacompressed,dcompLength+1);
+	  	 printf("hello \n");
+	  	DecoderConvertByteToBit(datacompressed[j]);
+	  	for(i = 0; i<(dcompLength-1)*8; i++){
+		  	decompressbuffer[i] = binarybuffer[n];
+		  	n++;
+		  	/*To start over with a new byte*/
+		  	if((i+1) % 8 == 0){
+		  		n = 0;
+		  		j++;
+		  		DecoderConvertByteToBit(datacompressed[j]);
+	  		}
+	  	}
+	  	/*Reconstruct corresponding to a and b*/
+	  	DecoderReconstruct(datacompressed,(dcompLength-1)*8);		
+	}
 
 	
 	command void OnlineCompressionAlgorithm.fileEnd(){
@@ -145,13 +203,12 @@ implementation{
 	}
 
 	command void OnlineCompressionAlgorithm.compress(uint8_t *data, uint16_t length){
-		uint8_t i,counter=1,inds=0,p,n=0,j=0;
+		uint8_t i,counter=1,inds=0,p;
 		uint8_t q=0;
-		uint8_t sendcompressedpackage[length]; //****** size should be changed
+		uint8_t sendcompressedpackage[2+length/8]; //****** size should be changed
 		uint8_t bits[8] = {1,1,1,1,1,1,1,1};
 		float sd,a,b,mean;
 	  	printf("Compress image!!\n");
-	  	
 	  	/*
 	  	 * ENCODER ENCODER ENCODER ENCODER ENCODER ENCODER ENCODER
 	  	 */
@@ -169,7 +226,12 @@ implementation{
 	  	/* Reconstruction values a and b */	 
 	  	a = mean - sd*SquareRoot((float)q/(float)(length-q));
 	  	b = mean + sd*SquareRoot((float)(length-q)/(float)q);
-	  	
+	  	printf("sd %d\n",(uint8_t)sd);
+	  	printf("q %d, length %d\n",q,length);
+	  	printf("sqrt %d \n",(uint8_t)(Root((float)q/(float)(length-q))*100));
+	  	printf("new sqrt %d \n",(uint8_t)(Root((float)7/(float)9)*100));
+	  	printf("nesc %d \n",(uint8_t)(isqrt((short)7/(short)9)*100));
+	  	printf("mikkel sqrt %d \n",(uint8_t)(SquareRoot((float)7/(float)9)*100));
 	  	/* convert data array to 1's and 0's */
 	  	EncoderConvertToSingleBit(data,length,mean);
 	  	
@@ -177,7 +239,7 @@ implementation{
 	  	sendcompressedpackage[0] = (uint8_t)a;
   		sendcompressedpackage[1] = (uint8_t)b;
   		/*start position (p=2) for rest of bytes*/
-  		p = 2;
+  		p = 1;
   		
 	  	for(i = 0; i<length; ++i){
 	  		/* buffer that saves the 8 bits that need to be converted to a byte */
@@ -186,41 +248,27 @@ implementation{
 	  		/* to only use 8 bits */
 	  		if(counter%8 == 0){
   				/*save the converted bytes in rest of array*/
+  				p++;
 	  			sendcompressedpackage[p] = EncoderConvertBitToByte(bits,8);
-	  			p++;
 	  			inds = 0;
   			}
   			counter++;
 	  	}
+	  	/* SEND ARRAY sendcompressedpackage with length p */
 	  	
 	  	/*
 	  	 * DECODER DECODER DECODER DECODER DECODER DECODER DECODER DECODER 
 	  	 */
-	  	counter = 1;
-	  	j = 2;
-	  	/* Convert byte to bit (e.g. 255 to 11111111) 
-	  	 * binarybuffer will be updated
-	  	 * */
-	  	DecoderConvertByteToBit(sendcompressedpackage[j]);
-	  	for(i = 0; i<length; i++){
-		  	decompressbuffer[i] = binarybuffer[n];
-		  	n++;
-		  	/*To start over with a new byte*/
-		  	if((i+1) % 8 == 0){
-		  		n = 0;
-		  		j++;
-		  		DecoderConvertByteToBit(sendcompressedpackage[j]);
-	  		}
-	  	}
-	  	/*Reconstruct corresponding to a and b*/
-	  	DecoderReconstruct(sendcompressedpackage,length);
+	  	Decompress(sendcompressedpackage, p);
 	  	
 	  	/*For testing*/
+	  	/*printf("mean %d, sd %d, a %d, b %d\n",(uint8_t)mean,(uint8_t)sd,(uint8_t)a,(uint8_t)b);
+	  	printf("new std %d \n",(uint8_t)std_var_stable(data, 16));
 	  	PrintArray(data,length);
 	  	PrintArray(compressbuffer,length);
-	  	PrintArray(sendcompressedpackage,p);
+	  	PrintArray(sendcompressedpackage,p+1);
 	  	PrintArray(decompressbuffer,length);
-	  	PrintArray(decodebuffer,length);
+	  	PrintArray(decodebuffer,length);*/
  	
   		printfflush();
 	}
