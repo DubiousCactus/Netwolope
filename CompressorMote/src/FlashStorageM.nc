@@ -9,8 +9,8 @@ module FlashStorageM{
   uses {
     interface BlockRead;
     interface BlockWrite;
-    interface CircularBufferReader as InBuffer;
-    interface CircularBufferWriter as OutBuffer;
+    interface CircularBufferReader as ReadBuffer;
+    interface CircularBufferWriter as WriteBuffer;
   }
 }
 implementation{
@@ -26,14 +26,14 @@ implementation{
     static int posted;
     uint16_t writeSize, bytesAvailable;
     
-    bytesAvailable = call InBuffer.available();
+    bytesAvailable = call ReadBuffer.available();
     if (bytesAvailable > BUFFER_CAPACITY) {
       writeSize = BUFFER_CAPACITY;
     } else {
       writeSize = bytesAvailable;
     }
     
-    if (call InBuffer.readChunk(_buffer, writeSize) == SUCCESS) {
+    if (call ReadBuffer.readChunk(_buffer, writeSize) == SUCCESS) {
       posted = call BlockWrite.write(_index, _buffer, writeSize) == SUCCESS;
     } else {
       signal FlashError.onError(3);
@@ -46,7 +46,7 @@ implementation{
     static int posted;
     uint16_t readSize, bytesFree;
     
-    bytesFree = call OutBuffer.getFreeSpace();
+    bytesFree = call WriteBuffer.getFreeSpace();
     if (bytesFree > BUFFER_CAPACITY) {
       readSize = BUFFER_CAPACITY;
     } else {
@@ -70,18 +70,23 @@ implementation{
   command void FlashReader.prepareRead(uint32_t bytesToRead){
     _index = 0;
     _totalSize = bytesToRead;
+    call WriteBuffer.clear();
   }
 
   command void FlashWriter.writeNextChunk(){
     post writeTask();
   }
   
-  command bool FlashReader.readNextChunk(){
+  command void FlashReader.readNextChunk(){
     if (_index < _totalSize) {
       post readTask();
-      return TRUE;
+      return;
     }
-    return FALSE;
+    signal FlashError.onError(4);
+  }
+  
+  command bool FlashReader.isFinished(){
+    return _index == _totalSize;
   }
 
   event void BlockRead.readDone(storage_addr_t addr, void *buf, storage_len_t len, error_t error){
@@ -91,8 +96,8 @@ implementation{
     }
     
     _index += len;
-    call OutBuffer.writeChunk(_buffer, len);
-    if (call OutBuffer.getFreeSpace() > 0 && _index < _totalSize) {
+    call WriteBuffer.writeChunk(_buffer, len);
+    if (call WriteBuffer.getFreeSpace() > 0 && _index < _totalSize) {
       post readTask();
     } else {
       signal FlashReader.chunkRead();
@@ -106,7 +111,7 @@ implementation{
     }
     
     _index += len;
-    if (call InBuffer.available() > 0) {
+    if (call ReadBuffer.available() > 0) {
       post writeTask();
     } else {
       call BlockWrite.sync();

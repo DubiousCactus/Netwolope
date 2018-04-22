@@ -1,10 +1,10 @@
 /**
- * Read data from the flash.
+ * Reads data from the flash.
  */
 interface FlashReader {
   command void prepareRead(uint32_t bytesToRead);
-  command bool readNextChunk();
+  command void readNextChunk();
+  command bool isFinished();
   
   event void chunkRead();
-  event void readDone();
 }

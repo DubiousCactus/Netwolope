@@ -42,7 +42,6 @@ implementation{
   }
 
   command void OnlineCompressionAlgorithm.fileEnd(){
-    uint16_t avail;
     uint8_t byte;
     
       while (call InBuffer.available() > 0) {

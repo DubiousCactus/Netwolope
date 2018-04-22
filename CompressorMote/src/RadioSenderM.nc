@@ -66,6 +66,14 @@ implementation{
     }
   }
 
+  command bool RadioSender.canSend(){
+    return (call Reader.available() > 0);
+  }
+
+  command bool RadioSender.canSendFullPacket(){
+    return (call Reader.available() >= PACKET_CAPACITY);
+  }
+
   command void RadioSender.sendPartialData(){
     uint8_t transferSize = 0;
     uint16_t availableBytes = 0;
@@ -85,7 +93,7 @@ implementation{
       }
       
       msg = (PartialDataMsg*)(call Packet.getPayload(&pkt, sizeof(PartialDataMsg)));
-      if (call Reader.readChunk(msg->data, (uint16_t)transferSize) != SUCCESS) {
+      if (call Reader.readChunk((uint8_t*)msg->data, (uint16_t)transferSize) != SUCCESS) {
         signal RadioSender.error(RS_ERR_PROGRAMMER);
         return;
       }
