@@ -58,6 +58,7 @@ module RossCompressionM {
 		if (length <= 18) {
 			memcpy(outbuff, data, length);
 			signal OnlineCompressionAlgorithm.compressed(outbuff, 0 - length);
+			return;
 		}
 
 		/* adjust # hash entries so hash algorithm can
@@ -78,6 +79,7 @@ module RossCompressionM {
 				if (out_idx > outbuff_end) {
 					memcpy(outbuff, data, length);
 					signal OnlineCompressionAlgorithm.error(OCA_ERR_BUFFER_OVERFLOW);
+					return;
 				}
 			}
 

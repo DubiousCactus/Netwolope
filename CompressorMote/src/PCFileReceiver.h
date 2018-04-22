@@ -6,7 +6,7 @@ typedef enum {
    * Expected call a call to <code>.receiveMore</code>
    * but did not received
    */
-  PFR_ERR_EXPECTED_RECEIVE_MORE = 2,
+  PFR_ERR_EXPECTED_RECEIVE_MORE = 6,
   
   /**
    * Indicates a programmer error. This error should

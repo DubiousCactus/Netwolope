@@ -1,8 +1,12 @@
-#include "RadioHeader.h"
+#include "RadioSender.h"
 
-interface RadioSender {
-  command void send(uint8_t last, uint8_t request, uint8_t * data, uint8_t size);
-  command void start();
-  event void readyToSend();
+interface RadioSender{
+  command void init();
+  command void sendPartialData(uint8_t * buffer, uint16_t bufferSize);
+  command void sendEOF();
+  
+  event void initDone();
   event void sendDone();
+  event void error(RadioSenderError error);
 }
+
