@@ -2,6 +2,7 @@
 
 import sys
 import tos
+import subprocess
 from datetime import datetime
 
 if '-h' in sys.argv:
@@ -37,6 +38,8 @@ while True:
       print 'Received TRANSMIT END data'
       if f:
         f.close()
+        # if ross:
+          # ross_decompress(file_name)
       else:
         print 'File not open'
     else:
@@ -47,3 +50,9 @@ while True:
     #print '=====================\n\n'
   else:
     print 'Did not receive any packet!'
+
+
+# Will probably fail because we surely need to decompress each part and THEN assemble the PGM file
+# TODO: test behavior
+def ross_decompress(file_name):
+  subprocess.call(["ross_decompression", file_name, "decompressed_" + file_name.split(".")[0] + ".pgm"])
