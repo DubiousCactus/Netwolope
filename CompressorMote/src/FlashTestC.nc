@@ -19,7 +19,7 @@ implementation{
   
   components ErrorIndicatorM;
   components new CircularBufferM(1024) as UncompressedBuffer;
-  components new CircularBufferM(1024) as CompressedBuffer;
+  components new CircularBufferM(2048) as CompressedBuffer;
   components FlashStorageM;
 
   PCFileReceiverM.SerialControl -> Serial;

@@ -20,13 +20,8 @@ implementation{
     uint8_t byte;
 
       while (call InBuffer.available() > 0) {
-        if (call InBuffer.read(&byte) == SUCCESS) {
-          if (call OutBuffer.write(byte) != SUCCESS) 
-            signal OnlineCompressionAlgorithm.error(1);          
-        } else {
-          signal OnlineCompressionAlgorithm.error(2);
-          break;
-        }
+        call InBuffer.read(&byte);
+        call OutBuffer.write(byte);
       }
     
     signal OnlineCompressionAlgorithm.compressed();
