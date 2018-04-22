@@ -66,7 +66,8 @@ class MoteFileSender:
     resp = self.am.read(timeout=5)
     if resp:
       if resp.type == ack_type:
-        #print ' [*] Received expected acknowledgement: ', resp
+        if debug:
+          print ' [*] Received expected acknowledgement: ', resp
         return
       else:
         print ' [!] Received unexpected packet', resp
@@ -92,14 +93,17 @@ class MoteFileSender:
     n_bytes = len(self.data_bytes)
     while i < n_bytes:
       bytes_to_send = self.data_bytes[i: i+PACKET_CAPACITY]
-      #print(' [*] Sending packet #%s' % counter)
-      self.show_progress(i, n_bytes)
+      if debug:
+        print(' [*] Sending packet #%s' % counter)
+      else:
+        self.show_progress(i, n_bytes)
       self.send_next_packet(bytes_to_send)
       i = i + len(bytes_to_send)
       counter += 1
 
   def send_eof(self):
-    #print ' [*] Sending EOF'
+    if debug:
+      print ' [*] Sending EOF'
     msg = EndOfFileMsg((self.file_size, ))
     self.send_message(msg, AM_MSG_EOF, AM_MSG_ACK_END_TRANSMIT)
     self.show_progress(100, 100)
@@ -113,7 +117,8 @@ class MoteFileSender:
     self.send_begin_file()
     self.send_file_contents()
     self.send_eof()
-    print 'We are done!'
+    if debug:
+      print 'We are done!'
 
 
 parser = OptionParser()
