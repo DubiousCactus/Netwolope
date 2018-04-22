@@ -21,6 +21,6 @@ interface RadioSender{
   
   event void initDone();
   event void sendDone();
-  event void fileBeginSent();
+  event void fileBeginAcknowledged();
   event void error(RadioSenderError error);
 }

@@ -166,7 +166,7 @@ implementation{
       } else if (currentState == STATE_WAITING_BEGIN_FILE_ACK){
         // TODO: Do something here
         currentState = STATE_READY;
-        signal RadioSender.fileBeginSent();
+        signal RadioSender.fileBeginAcknowledged();
       } else {
         signal RadioSender.error(RS_ERR_INVALID_STATE);
       }

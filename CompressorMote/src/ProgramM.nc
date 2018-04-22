@@ -13,10 +13,6 @@ implementation{
   bool sendEof = FALSE;
   
   event void Boot.booted(){
-    call Compressor.init();
-  }
-  
-  event void Compressor.initDone(){
     call RadioSender.init();
   }
   
@@ -33,12 +29,12 @@ implementation{
     call RadioSender.sendFileBegin(totalLength, call Compressor.getCompressionType());
   }
   
-  event void RadioSender.fileBeginSent(){
+  event void RadioSender.fileBeginAcknowledged(){
     call PCFileReceiver.sendFileBeginAck();
   }
   
   event void PCFileReceiver.receivedData(){
-    call Compressor.compress();
+    call Compressor.compress(FALSE);
   }
   
   event void Compressor.compressed(){
@@ -57,16 +53,16 @@ implementation{
   
   event void PCFileReceiver.fileEnd(){
     call Leds.led2On();
-    call Compressor.fileEnd();
+    call Compressor.compress(TRUE);
   }
   
-  event void Compressor.compressDone(){
-    if (radioBusy == TRUE) {
-      sendEof = TRUE;
-    } else {
-      call RadioSender.sendEOF();
-    }
-  }
+//  event void Compressor.compressDone(){
+//    if (radioBusy == TRUE) {
+//      sendEof = TRUE;
+//    } else {
+//      call RadioSender.sendEOF();
+//    }
+//  }
 
   event void PCFileReceiver.error(PCFileReceiverError error){
     call ErrorIndicator.blinkRed(error);

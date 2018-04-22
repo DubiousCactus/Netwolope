@@ -3,7 +3,7 @@ module FlashTestM{
     interface Boot;
     interface Leds;
     interface PCFileReceiver;
-//    interface OnlineCompressionAlgorithm as Compressor;
+    interface OnlineCompressionAlgorithm as Compressor;
     interface RadioSender;
     interface ErrorIndicator;
     interface FlashReader;
@@ -16,6 +16,7 @@ module FlashTestM{
 implementation{
   bool radioBusy = FALSE;
   bool sendEof = FALSE;
+  bool isCompressionComplete = FALSE;
   uint32_t fileSize;
   
   event void Boot.booted(){
@@ -52,20 +53,24 @@ implementation{
   event void PCFileReceiver.fileEnd(){
     call RadioSender.init();
   }
-  
   event void RadioSender.initDone(){ 
-    call RadioSender.sendFileBegin(fileSize, 0);
+    call RadioSender.sendFileBegin(fileSize, call Compressor.getCompressionType());
   }
-  
-  event void RadioSender.fileBeginSent(){ 
+  event void RadioSender.fileBeginAcknowledged(){ 
+    isCompressionComplete = FALSE;
+    call Compressor.fileBegin(fileSize);
     call FlashReader.prepareRead(fileSize);
     call FlashReader.readNextChunk();
   }
 
   event void FlashReader.chunkRead(){
-    call RadioSender.sendPartialData();
+    call Compressor.compress(call FlashReader.isFinished());
   }
   
+  event void Compressor.compressed(){
+    call RadioSender.sendPartialData();
+  }
+
   event void RadioSender.sendDone(){
     if (call RadioSender.canSend()) {
       call RadioSender.sendPartialData();
@@ -77,8 +82,7 @@ implementation{
     } else {
       call FlashReader.readNextChunk();
     }
-  }
-  
+  }  
   
   event void PCFileReceiver.error(PCFileReceiverError error){
     call ErrorIndicator.blinkRed(error);
@@ -89,6 +93,10 @@ implementation{
   }
 
   event void FlashError.onError(error_t error){
-    call Leds.led0On();
+    call ErrorIndicator.blinkRed(2);
+  }
+
+  event void Compressor.error(CompressionError error){
+    call ErrorIndicator.blinkRed(3);
   }
 }

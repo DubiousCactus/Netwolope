@@ -17,7 +17,7 @@ implementation{
   components NoCompressionM;
   components ErrorIndicatorM;
   components new CircularBufferM(1024) as UncompressedBuffer;
-//  components new CircularBufferM(1024) as CompressedBuffer;
+  components new CircularBufferM(1024) as CompressedBuffer;
   components FlashStorageM;
 
   PCFileReceiverM.SerialControl -> Serial;
@@ -32,8 +32,8 @@ implementation{
   FlashStorageM.BlockRead -> BlockStorage;
   FlashStorageM.BlockWrite -> BlockStorage;
     
-//  NoCompressionM.InBuffer -> UncompressedBuffer;
-//  NoCompressionM.OutBuffer -> CompressedBuffer;
+  NoCompressionM.InBuffer -> UncompressedBuffer;
+  NoCompressionM.OutBuffer -> CompressedBuffer;
 
 
   RadioSenderM.Packet -> Radio;
@@ -41,7 +41,7 @@ implementation{
   RadioSenderM.RadioSend -> Radio.AMSend;
   RadioSenderM.RadioReceive -> Radio.Receive;
   RadioSenderM.RadioControl -> Radio;
-  RadioSenderM.Reader -> UncompressedBuffer;
+  RadioSenderM.Reader -> CompressedBuffer;
 
   ErrorIndicatorM.BlinkTimer -> Timer0;
   ErrorIndicatorM.Leds -> LedsC;
@@ -50,7 +50,7 @@ implementation{
   FlashTestM.Leds -> LedsC;
   FlashTestM.RadioSender -> RadioSenderM;
   FlashTestM.PCFileReceiver -> PCFileReceiverM;
-//  FlashTestM.Compressor -> NoCompressionM;
+  FlashTestM.Compressor -> NoCompressionM;
   FlashTestM.ErrorIndicator -> ErrorIndicatorM;
   FlashTestM.FlashReader -> FlashStorageM;
   FlashTestM.FlashWriter -> FlashStorageM;
