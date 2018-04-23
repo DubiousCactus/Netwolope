@@ -1,4 +1,4 @@
-module ProgramM{
+module ProgramM {
   uses {
     interface Boot;
     interface Leds;
@@ -6,102 +6,97 @@ module ProgramM{
     interface OnlineCompressionAlgorithm as Compressor;
     interface RadioSender;
     interface ErrorIndicator;
+    interface FlashReader;
+    interface FlashWriter;
+    interface FlashError;
+    interface CircularBufferReader as UncompressedBufferReader;
+    interface CircularBufferWriter as UncompressedBufferWriter;
   }
 }
-implementation{
-  enum {
-    RADIO_DATA_CAPACITY = 50
-  };
-  
-  uint8_t temp[RADIO_DATA_CAPACITY];
-  uint8_t *dataToSend;
-  uint16_t dataToSendLength;
-  uint16_t sendIndex;
-  uint16_t newSendIndex;
-  
-  task void sendNextPacketOverRadio() {
-    uint8_t bufferSize;
-    atomic {
-      if (sendIndex == dataToSendLength){
-        // All data are sent over the radio. 
-        call ErrorIndicator.blinkRed(7);
-        return;
-      }
-      if (sendIndex + RADIO_DATA_CAPACITY > dataToSendLength) {
-        bufferSize = (uint8_t)(dataToSendLength - sendIndex);
-      } else {
-        bufferSize = RADIO_DATA_CAPACITY;
-      }
-      call Leds.led2Off();
-      newSendIndex = sendIndex + bufferSize;
-      call RadioSender.send(0, 0, &(dataToSend[sendIndex]), bufferSize);
-    }
-  }
-  
-  // EVENT HANDLERS
+implementation {
+  bool radioBusy = FALSE;
+  bool sendEof = FALSE;
+  bool isCompressionComplete = FALSE;
+  uint32_t fileSize;
   
   event void Boot.booted(){
-    dataToSendLength = 0;
-    sendIndex = 0;
-    call Compressor.init();
-  }
-  
-  event void Compressor.initDone(){
-    call RadioSender.start();
-  }
-  
-  event void RadioSender.readyToSend(){
     call PCFileReceiver.init();
-    call Leds.led1Toggle();
   }
   
   event void PCFileReceiver.initDone(){ 
+     call Leds.set(0);
      call Leds.led1On();
   }
   
   event void PCFileReceiver.fileBegin(uint32_t totalLength){
-    call Compressor.fileBegin(totalLength);
+    fileSize = totalLength;
+    call FlashWriter.prepareWrite(totalLength);
+  }
+    
+  event void FlashWriter.readyToWrite(){
+    call Leds.led1Toggle();
+    call PCFileReceiver.sendFileBeginAck();
   }
   
-  event void PCFileReceiver.receivedData(uint8_t *data, uint16_t length){
-    call Compressor.compress(data, length);
+  event void PCFileReceiver.receivedData(){
+    call FlashWriter.writeNextChunk();
   }
+
+  event void FlashWriter.chunkWritten(){
+    call Leds.led1Toggle();
+    call PCFileReceiver.receiveMore();
+  }
+
+
+
   
   event void PCFileReceiver.fileEnd(){
-    call Compressor.fileEnd();
+    call RadioSender.init();
+  }
+  event void RadioSender.initDone(){ 
+    call RadioSender.sendFileBegin(fileSize, call Compressor.getCompressionType());
+  }
+  event void RadioSender.fileBeginAcknowledged(){ 
+    isCompressionComplete = FALSE;
+    call Compressor.fileBegin(fileSize);
+    call FlashReader.prepareRead(fileSize);
+    call FlashReader.readNextChunk();
+  }
+
+  event void FlashReader.chunkRead(){
+    call Compressor.compress(call FlashReader.isFinished());
   }
   
-  event void Compressor.compressed(uint8_t *compressedData, uint16_t length){
-    atomic {
-      dataToSend = compressedData;
-      dataToSendLength = length;
-      sendIndex = 0;
-    }
-    
-    post sendNextPacketOverRadio();
-  }
-  
-  event void Compressor.compressDone(){
-    call RadioSender.send(1, 0, temp, 0);
+  event void Compressor.compressed(){
+    call RadioSender.sendPartialData();
   }
 
   event void RadioSender.sendDone(){
-    call Leds.led2On();
-    atomic {
-      sendIndex = newSendIndex;
-      if (sendIndex < dataToSendLength) {
-        post sendNextPacketOverRadio();
-      } else {
-        call PCFileReceiver.receiveMore();
-      }      
+    if (call RadioSender.canSend()) {
+      call RadioSender.sendPartialData();
+      
+    } else if (call FlashReader.isFinished()) {
+      call RadioSender.sendEOF();
+      call Leds.led2On();
+      
+    } else {
+      call FlashReader.readNextChunk();
     }
-  }
-
+  }  
+  
   event void PCFileReceiver.error(PCFileReceiverError error){
     call ErrorIndicator.blinkRed(error);
   }
-  
+
+  event void RadioSender.error(RadioSenderError error){
+    call ErrorIndicator.blinkRed(error);
+  }
+
+  event void FlashError.onError(error_t error){
+    call ErrorIndicator.blinkRed(2);
+  }
+
   event void Compressor.error(CompressionError error){
-    call Leds.led0On();
+    call ErrorIndicator.blinkRed(3);
   }
 }

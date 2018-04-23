@@ -51,25 +51,30 @@ class MoteFileSender:
   def __init__(self):
     self.am = tos.AM()
 
+  def show_progress(self, iteration, total, bar_length=50):
+    percent = int(round((iteration / float(total)) * 100))
+    nb_bar_fill = int(round((bar_length * percent) / 100))
+    bar_fill = '#' * nb_bar_fill
+    bar_empty = ' ' * (bar_length - nb_bar_fill)
+    sys.stdout.write("\r  [%s] %s%%" % (str(bar_fill + bar_empty), percent))
+    sys.stdout.flush()
+
   def send_message(self, msg, msg_type, ack_type, num_retries = 10):
     #sleep(1)
     counter = 0
-    while True:
-      self.am.write(msg, msg_type)
-      resp = self.am.read(timeout=5)
-      if resp:
-        if resp.type == ack_type:
+    self.am.write(msg, msg_type)
+    resp = self.am.read(timeout=5)
+    if resp:
+      if resp.type == ack_type:
+        if debug:
           print ' [*] Received expected acknowledgement: ', resp
-          return
-        else:
-          print ' [!] Received unexpected packet', resp
-          exit(1)
+        return
       else:
-        print ' [!] Read timeout'
-      counter += 1
-      if counter >= num_retries:
-        print ' [!] Retried %s times. Giving up...' % num_retries
+        print ' [!] Received unexpected packet', resp
         exit(1)
+    else:
+      print ' [!] Read timeout'
+      exit(1)
 
   def send_begin_file(self):
     msg = BeginFileMsg((self.file_size, ))
@@ -85,17 +90,23 @@ class MoteFileSender:
     f.close()
     counter = 1
     i = 0
-    while i < len(self.data_bytes):
+    n_bytes = len(self.data_bytes)
+    while i < n_bytes:
       bytes_to_send = self.data_bytes[i: i+PACKET_CAPACITY]
-      print(' [*] Sending packet #%s' % counter)
+      if debug:
+        print(' [*] Sending packet #%s' % counter)
+      else:
+        self.show_progress(i, n_bytes)
       self.send_next_packet(bytes_to_send)
       i = i + len(bytes_to_send)
       counter += 1
 
   def send_eof(self):
-    print ' [*] Sending EOF'
+    if debug:
+      print ' [*] Sending EOF'
     msg = EndOfFileMsg((self.file_size, ))
     self.send_message(msg, AM_MSG_EOF, AM_MSG_ACK_END_TRANSMIT)
+    self.show_progress(100, 100)
 
   def send(self, file_name):
     self.file_name = file_name
@@ -106,7 +117,8 @@ class MoteFileSender:
     self.send_begin_file()
     self.send_file_contents()
     self.send_eof()
-    print 'We are done!'
+    if debug:
+      print 'We are done!'
 
 
 parser = OptionParser()
