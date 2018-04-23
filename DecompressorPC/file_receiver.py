@@ -88,6 +88,8 @@ class MoteFileReceiver:
     sys.stdout.flush()
 
   def wait_for_data(self):
+    self.start_time = datetime.now()
+    self.no_packets = 0
     while True:
       packet = self.am.read()
       if packet.type == AM_MSG_PARTIAL_DATA:
@@ -95,11 +97,13 @@ class MoteFileReceiver:
         data = msg.data
         data_size = len(data)
         self.received_data_count += data_size
+        self.no_packets += 1
         #print('\n[*] Received data of size %s' % len(data))
         self.current_file.write(bytearray(data))
         self.current_file.flush()
         self.show_progress(self.received_data_count, self.file_size)
       elif packet.type == AM_MSG_EOF:
+        self.end_time = datetime.now()
         #print('\n[*] Received EOF.')
         msg = EndOfFileMsg(packet.data)
         self.current_file.close()
@@ -169,6 +173,9 @@ class MoteFileReceiver:
     compressed_size = self.received_data_count
     compression_rate = original_size / float(compressed_size)
     print 'Transferred file size: %s, original %s: Ratio: %s' % (compressed_size, original_size, compression_rate)
+    print 'Number of packets: %s' % self.no_packets
+    time_diff = self.end_time - self.start_time
+    print 'Seconds: %s' % time_diff.seconds
 
   def listen(self):
     self.wait_for_begin_file()
