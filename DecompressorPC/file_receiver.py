@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 from time import sleep
 from optparse import OptionParser
+from decompressors import DecompressorBase
 
 if '-h' in sys.argv:
   print "Usage:", sys.argv[0], "serial@/dev/ttyUSB0:115200"
@@ -128,51 +129,35 @@ class MoteFileReceiver:
       packet = self.am.read()
       if packet.type == AM_MSG_BEGIN_FILE:
         msg = BeginFileMsg(packet.data)
-        print('\n[*] New file (%s, %s). Sending acknowledgement...' % (msg.size, msg.type))
+        self.compression_type = msg.type
+        self.image_width = msg.size
+        self.file_size = self.image_width ** 2
+        self.received_data_count = 0
+        self.compression_name = DecompressorBase.type_to_str(self.compression_type)
+
+        print('\n[*] Received begin file (%s bytes, %s)...' % (self.file_size, self.compression_name))
 
         # Send ack
         ack_msg = BeginFileActMsg((msg.type, ))
         self.am.write(ack_msg, AM_MSG_BEGIN_FILE_ACK)
 
-        # Store the message for later use.
-        self.begin_file_msg = msg
-        self.file_size = msg.size
-        self.received_data_count = 0
         return
       else:
         pass
 
-  def decompress_run_length(self):
-    print('Decompressing run-length encoded file...')
-    in_file = open(self.file_path, 'rb')
-    out_file = open(self.decompressed_file_path, 'wb')
-    while True:
-      byte_array = in_file.read(2)
-      if len(byte_array) != 2:
-        break
-      data = byte_array[0]
-      count = int(byte_array[1].encode('hex'), 16)
-      out_file.write(bytearray( data * count ))
-    in_file.close()
-    out_file.close()
-    print('Decompressed file: %s' % self.decompressed_file_path)
-
   def decompress(self):
-    compr_type = self.begin_file_msg.type
-    if compr_type == COMPRESSION_TYPE_NONE:
-      os.rename(self.file_path, self.decompressed_file_path)
-    elif compr_type == COMPRESSION_TYPE_RUN_LENGTH:
-      self.decompress_run_length()
-    else:
-      # Uknown compression
-      print('Unknown compression: %s' % compr_type)
+    DecompressorBase.decompress(
+      self.compression_type,
+      self.file_path,
+      self.image_width
+    )
 
   def print_summary(self):
-    print 'Data written to file: %s' % self.file_path
-    original_size = self.begin_file_msg.size
+    print '\n [*] Data written to file: %s' % self.file_path
+    original_size = self.file_size
     compressed_size = self.received_data_count
     compression_rate = original_size / float(compressed_size)
-    print 'Transferred file size: %s, original %s: Ratio: %s' % (compressed_size, original_size, compression_rate)
+    print 'Transferred file size: %s. Original size: %s: Ratio: %s' % (compressed_size, original_size, compression_rate)
     print 'Number of packets: %s' % self.no_packets
     time_diff = self.end_time - self.start_time
     print 'Seconds: %s' % time_diff.seconds
