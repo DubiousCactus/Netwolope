@@ -3,9 +3,9 @@
 
 typedef enum {
   RS_ERR_INIT_FAILED = 2,
+  RS_ERR_INVALID_STATE,
   RS_ERR_PROGRAMMER,
   RS_ERR_SEND_FAILED,
-  RS_ERR_INVALID_STATE,
 } RadioSenderError;
 
 #endif /* RADIO_SENDER_H */

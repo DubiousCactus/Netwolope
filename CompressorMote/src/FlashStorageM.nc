@@ -2,189 +2,192 @@
 
 module FlashStorageM {
   provides {
-    interface FlashStorage;
+    interface FlashWriter;
+    interface FlashReader;
+    interface FlashError;
   }
   uses {
-    interface Leds;
     interface BlockRead;
     interface BlockWrite;
+    interface CircularBufferReader as ReadBuffer;
+    interface CircularBufferWriter as WriteBuffer;
   }
 }
 implementation {
   
   enum {
-    BUFFER_CAPACITY = 100,
-    PREAMBLE_SIZE = 8
+    BUFFER_CAPACITY = 1024,
+    PREAMPLE_SIZE = 2,
   };
   
-  typedef enum {
-    STATE_UNKNOWN,
-    STATE_READING_PREAMBLE,
-    STATE_READING_DATA,
-    STATE_WRITING_INITIAL_PREAMBLE,
-    STATE_WRITING_DATA,
-    STATE_WRITING_SIZE,
-    STATE_READY
-  } FlashStorageState;
+  uint8_t _buffer[BUFFER_CAPACITY];
+  uint32_t _index;
+  uint32_t _endIndex;
+  uint16_t _imageWidth = 0;
+  bool readingPreamble = FALSE;
+  bool writingPreamble = FALSE;
   
-  uint8_t buffer[BUFFER_CAPACITY];
-  FlashStorageState state = STATE_UNKNOWN;
-  uint32_t size = 0;
-  
-  task void wipeFlashTask() {
-    if (call BlockWrite.erase() != SUCCESS) {
-      signal FlashStorage.error(FS_ERR_ERASE_FAILED);
-      //post wipeFlashTask();
-    }
-  }
-  
-  void verifyPreampleTask(void *buf, storage_len_t len) {
-    uint8_t* byteArray;
-    uint32_t* dataArray;
+  task void writePreample() {
+    static int posted;
+    uint16_t * preambleArr;
     
-    byteArray = (uint8_t*)buf;
-      
-    // First 4 bytes, should be 0xDEAD 
-    if (len == PREAMBLE_SIZE && byteArray[0] == 0xD && byteArray[1] == 0xE && byteArray[2] == 0xA && byteArray[3] == 0xD) {
-      dataArray = (uint32_t*)buf;
-      atomic {
-        // Read the next 4 bytes as 32 bit unsigned integer
-        size = dataArray[1];
-        state = STATE_READY;
-      }
-      
-      // Initialisation is done
-      signal FlashStorage.initialised(size);
-    } else {
-      // Preamble is not as expected, wipe the flash
-      post wipeFlashTask();
-    }
-  }
-  
-  task void writePreambleTask() {
-    uint32_t* dataArray;
-    atomic {
-      buffer[0] = 0xD;
-      buffer[1] = 0xE;
-      buffer[2] = 0xA;
-      buffer[3] = 0xD;
-      buffer[4] = 0x0;
-      buffer[5] = 0x0;
-      buffer[6] = 0x0;
-      buffer[7] = 0x0;
-      
-      // Convert byte array to int32 array
-      dataArray = (uint32_t*)&(buffer);
-      dataArray[1] = size;
-      
-      if (call BlockWrite.write(0, &buffer, PREAMBLE_SIZE) != SUCCESS) {
-        signal FlashStorage.error(FS_ERR_WRITE_FAILED);
-      }
-    }
-  }
-
-  task void readPreampleTask() {
-    static error_t result;
-    atomic {
-      result = call BlockRead.read(0,               // position in the flash
-                               &buffer,             // pointer to the buffer
-                               PREAMBLE_SIZE        // amount of bytes to read
-                               );
-      if (result == SUCCESS) {
-	    state = STATE_READING_PREAMBLE;
-      } else {
-        post readPreampleTask();
-      }
-    }
-  }
-
-  command void FlashStorage.init(bool erase) {
-    if (erase == TRUE) {
-      post wipeFlashTask();
-    } else {
-      post readPreampleTask();
-    }
-  }
-  
-  command void FlashStorage.read(uint32_t fromIndex, uint8_t *data, uint16_t length) {
-    atomic {
-      if (call BlockRead.read(fromIndex, data, length) == SUCCESS) {
-        state = STATE_READING_DATA;
-      } else {
-        signal FlashStorage.error(FS_ERR_WRITE_FAILED);
-      }      
-    }
-  }
-  
-  command void FlashStorage.write(uint8_t *data, uint16_t length) {
-    atomic {
-      if (call BlockWrite.write(PREAMBLE_SIZE + size, data, length) == SUCCESS) {
-        state = STATE_WRITING_DATA;
-      } else {
-        signal FlashStorage.error(FS_ERR_WRITE_FAILED);
-      }      
-    }
-  }
-
-  event void BlockRead.computeCrcDone(storage_addr_t addr, storage_len_t len, uint16_t crc, error_t error) {
+    // Convert byte array to 16-bit integer array
+    // to write the image width
+    preambleArr = (uint16_t *)_buffer;
+    preambleArr[0] = _imageWidth;
     
+    writingPreamble = TRUE;
+    posted = call BlockWrite.write(0, _buffer, PREAMPLE_SIZE) == SUCCESS;
+    if (!posted) post writePreample();
+  }
+  
+  task void readPreamble() {
+    static int posted;
+    readingPreamble = TRUE;
+    
+    posted = call BlockRead.read(0, _buffer, PREAMPLE_SIZE) == SUCCESS;
+    if (!posted) post readPreamble();
+  }
+  
+  task void writeTask() {
+    static int posted;
+    uint16_t writeSize, bytesAvailable;
+    
+    bytesAvailable = call ReadBuffer.available();
+    if (bytesAvailable > BUFFER_CAPACITY) {
+      writeSize = BUFFER_CAPACITY;
+    } else {
+      writeSize = bytesAvailable;
+    }
+    
+    if (call ReadBuffer.readChunk(_buffer, writeSize) == SUCCESS) {
+      posted = call BlockWrite.write(_index, _buffer, writeSize) == SUCCESS;
+    } else {
+      signal FlashError.onError(3);
+    }
+    
+    if (!posted) post writeTask();
+  }
+  
+  task void readTask() {
+    static int posted;
+    uint16_t readSize, bytesFree;
+    
+    bytesFree = call WriteBuffer.getFreeSpace();
+    if (bytesFree > BUFFER_CAPACITY) {
+      readSize = BUFFER_CAPACITY;
+    } else {
+      readSize = bytesFree;
+    }
+    
+    if (_index + readSize > _endIndex) {
+      readSize = _endIndex - _index;
+    }
+    
+    posted = call BlockRead.read(_index, _buffer, readSize) == SUCCESS;
+    if (!posted) post readTask();
+  }
+  
+  command void FlashWriter.prepareWrite(uint16_t width){
+    uint32_t width32 = width;
+    _imageWidth = width;
+    _index = PREAMPLE_SIZE;
+    _endIndex = (width32 * width32) + PREAMPLE_SIZE;
+    call BlockWrite.erase();
   }
 
-  event void BlockRead.readDone(storage_addr_t addr, void *buf, storage_len_t len, error_t error) {
-    if (error == SUCCESS) {
-      atomic {
-        if (state == STATE_READING_PREAMBLE) {
-          verifyPreampleTask(buf, len);
-          
-        } else if (state == STATE_READING_DATA) {
-          state = STATE_READY;
-          signal FlashStorage.readDone();
-        }
-      }
+  command void FlashReader.prepareRead(){
+    _index = 0;
+    _imageWidth = 0; // image width is set when preamble is read
+    _endIndex = 0;  // computed when preamble is read
+    call WriteBuffer.clear();
+    post readPreamble();
+  }
+
+  command void FlashWriter.writeNextChunk(){
+    post writeTask();
+  }
+  
+  command void FlashReader.readNextChunk(){
+    if (_index < _endIndex) {
+      post readTask();
+      return;
+    }
+    signal FlashError.onError(4);
+  }
+  
+  command bool FlashReader.isFinished(){
+    return _index == _endIndex;
+  }
+
+  event void BlockRead.readDone(storage_addr_t addr, void *buf, storage_len_t len, error_t error){
+    uint16_t * preambleArr;
+    uint32_t imageWidth32;
+    
+    if (error != SUCCESS) {
+      signal FlashError.onError(3);
+      return;
+    }
+    
+    if (readingPreamble == TRUE) {
+      readingPreamble = FALSE;
+      
+      preambleArr = (uint16_t *)buf; 
+      _imageWidth = preambleArr[0];
+      imageWidth32 = _imageWidth;
+      
+      _index = PREAMPLE_SIZE;
+      _endIndex = (imageWidth32 * imageWidth32) + PREAMPLE_SIZE;
+      signal FlashReader.readyToRead(_imageWidth);
+      return;
+    }
+    
+    _index += len;
+    call WriteBuffer.writeChunk(_buffer, len);
+    if (call WriteBuffer.getFreeSpace() > 0 && _index < _endIndex) {
+      post readTask();
     } else {
-      // TODO: Signal an error
+      signal FlashReader.chunkRead();
     }
   }
-
-  event void BlockWrite.eraseDone(error_t error) {
-    if (error == SUCCESS) {
-      atomic {
-        size = 0;
-        state = STATE_WRITING_INITIAL_PREAMBLE;
-      }
-      post writePreambleTask();
+  
+  event void BlockWrite.writeDone(storage_addr_t addr, void *buf, storage_len_t len, error_t error){
+    if (error != SUCCESS) {
+      signal FlashError.onError(3);
+      return;
+    }
+    
+    if (writingPreamble == TRUE) {
+      writingPreamble = FALSE;
+      signal FlashWriter.readyToWrite();
+      return;
+    }
+    
+    _index += len;
+    if (call ReadBuffer.available() > 0) {
+      post writeTask();
+    } else {
+      call BlockWrite.sync();
     }
   }
 
   event void BlockWrite.syncDone(error_t error) {
     if (error == SUCCESS) {
-      atomic {
-        if (state == STATE_WRITING_INITIAL_PREAMBLE) {
-          state = STATE_READY;
-          signal FlashStorage.initialised(size);
-          
-        } else if (state == STATE_WRITING_DATA) {
-          state = STATE_READY;
-          signal FlashStorage.writeDone();          
-        }
-      }
+      signal FlashWriter.chunkWritten();
     } else {
-      // TODO: Handle error
+      signal FlashError.onError(3);
     }
   }
 
-  event void BlockWrite.writeDone(storage_addr_t addr, void *buf, storage_len_t len, error_t error) {
+  event void BlockWrite.eraseDone(error_t error) {
     if (error == SUCCESS) {
-      atomic {
-        if (state == STATE_WRITING_DATA) {
-          size += len;
-        }
-      }
-      
-      // Always call sync() after a write operation
-      call BlockWrite.sync();
+      post writePreample();
     } else {
-      // TODO: Handle error
+      signal FlashError.onError(3);
     }
+  }
+  
+  event void BlockRead.computeCrcDone(storage_addr_t addr, storage_len_t len, uint16_t crc, error_t error){
+    // TODO Auto-generated method stub
   }
 }
