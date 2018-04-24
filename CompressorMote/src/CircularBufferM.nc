@@ -1,13 +1,22 @@
+#include "math.h"
+
 generic module CircularBufferM(uint16_t CAPACITY) {
   provides {
     interface CircularBufferReader as Reader;
     interface CircularBufferWriter as Writer;
+    interface CircularBufferBlockReader as BlockReader;
   }
 }
 implementation{
   uint8_t _buf[CAPACITY];
   uint16_t _start = 0;
   uint16_t _end = 0;
+  
+  uint8_t _blockSize = 0;
+  uint16_t _blockRowSize = 0;
+  uint16_t _blocksPerRow = 0;
+  uint16_t _imageWidth = 0;
+  uint16_t _blockIndex = 0;
   
   inline uint16_t available() {
     if (_start <= _end)
@@ -76,5 +85,39 @@ implementation{
 
   command uint16_t Writer.getFreeSpace(){
     return getFreeSpace();
+  }
+
+  command void BlockReader.prepare(uint16_t imageWidth, uint8_t blockSize){
+    _imageWidth = imageWidth;
+    _blockSize = blockSize;
+    _blocksPerRow = imageWidth / _blockSize;
+    // BlockRowSize is the number of bytes required to fill a row of blocks
+    _blockRowSize = _blockSize * _blockSize * _blocksPerRow;
+    _blockIndex = 0;
+  }
+  
+  command bool BlockReader.hasMoreBlocks(){
+    return _blockIndex < available() / (_blockSize * _blockSize);
+  }
+  
+  command void BlockReader.readNextBlock(uint8_t * outBuffer){
+    uint16_t rowOffset, blockOffset, internalBufIdx, outBufferIndex = 0;
+    uint8_t i, j;
+    
+    rowOffset = (_blockIndex / _blocksPerRow) * _blockRowSize;
+    blockOffset = fmod(_blockIndex, _blocksPerRow);
+    
+    for (i = 0; i < _blockSize; i++) {
+      for (j = 0; j < _blockSize; i++) {
+        internalBufIdx = j + (_blockSize * blockOffset) + (_imageWidth * i) + rowOffset;
+        outBuffer[outBufferIndex] = _buf[internalBufIdx];
+        outBufferIndex += 1;
+        
+        // Note: we increment _start variable only because we rely on the
+        // available() method to determine when we have reach the end
+        _start++;
+        if (_start == CAPACITY) _start = 0;
+      }
+    }
   }
 }
