@@ -37,8 +37,8 @@ implementation{
   } Constants;
   
   typedef nx_struct {
-    nx_uint32_t totalSize;
-  } BeginTransmitMsg;
+    nx_uint16_t width;
+  } BeginFileMsg;
   
   
   typedef nx_struct {
@@ -52,7 +52,7 @@ implementation{
   
   InternalState state = STATE_INIT;
   message_t packet;
-  uint32_t totalSize = 0;
+  uint16_t width = 0;
   bool waitingForReceiveMoreCommand = FALSE;
   
   /**
@@ -77,12 +77,12 @@ implementation{
    * Process a packet from the 
    */
   void processBeginTrasmitMsg(message_t* message) {
-    BeginTransmitMsg* msg = (BeginTransmitMsg*)call SerialPacket.getPayload(message, sizeof(BeginTransmitMsg));
+    BeginFileMsg* msg = (BeginFileMsg*)call SerialPacket.getPayload(message, sizeof(BeginFileMsg));
     atomic {
-      totalSize = msg->totalSize;
+      width = msg->width;
       call Writer.clear();
     }
-    signal PCFileReceiver.fileBegin(totalSize);
+    signal PCFileReceiver.fileBegin(width);
   }
   
   inline void processPartialData(message_t *msg, void *payload, uint8_t len) {
@@ -117,7 +117,7 @@ implementation{
   }
   
   command void PCFileReceiver.sendFileBeginAck() {
-    sendAckMsg(AM_MSG_ACK_BEGIN_FILE, totalSize);
+    sendAckMsg(AM_MSG_ACK_BEGIN_FILE, width * width);
   }
 
   event void SerialControl.stopDone(error_t error){ }

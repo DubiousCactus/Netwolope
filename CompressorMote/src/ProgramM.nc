@@ -14,10 +14,7 @@ module ProgramM {
   }
 }
 implementation {
-  bool radioBusy = FALSE;
-  bool sendEof = FALSE;
-  bool isCompressionComplete = FALSE;
-  uint32_t fileSize;
+  uint16_t _imageWidth;
   
   event void Boot.booted(){
     call PCFileReceiver.init();
@@ -28,9 +25,8 @@ implementation {
      call Leds.led1On();
   }
   
-  event void PCFileReceiver.fileBegin(uint32_t totalLength){
-    fileSize = totalLength;
-    call FlashWriter.prepareWrite(totalLength);
+  event void PCFileReceiver.fileBegin(uint16_t width){
+    call FlashWriter.prepareWrite(width);
   }
     
   event void FlashWriter.readyToWrite(){
@@ -51,15 +47,20 @@ implementation {
 
   
   event void PCFileReceiver.fileEnd(){
+    call FlashReader.prepareRead();
+  }
+  
+  event void FlashReader.readyToRead(uint16_t width){
+    _imageWidth = width;
     call RadioSender.init();
   }
+  
   event void RadioSender.initDone(){ 
-    call RadioSender.sendFileBegin(fileSize, call Compressor.getCompressionType());
+    call RadioSender.sendFileBegin(_imageWidth, call Compressor.getCompressionType());
   }
+  
   event void RadioSender.fileBeginAcknowledged(){ 
-    isCompressionComplete = FALSE;
-    call Compressor.fileBegin(fileSize);
-    call FlashReader.prepareRead(fileSize);
+    call Compressor.fileBegin(_imageWidth);
     call FlashReader.readNextChunk();
   }
 
