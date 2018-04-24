@@ -11,7 +11,6 @@ configuration ProgramC {
 implementation {
   components MainC;
   components PrintfC;
-  components SerialStartC;
   components LedsC;
   components ProgramM;
   components SerialActiveMessageC as Serial;
@@ -69,14 +68,16 @@ implementation {
   NoCompressionM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> NoCompressionM;
 
-  #elseif COMPRESSION_RUN_LENGTH
+  #endif
+  #ifdef COMPRESSION_RUN_LENGTH
 
   components RunLengthEncoderM;
   RunLengthEncoderM.InBuffer -> UncompressedBuffer;
   RunLengthEncoderM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> RunLengthEncoderM;
 
-  #elseif COMPRESSION_ROSS
+  #endif
+  #if COMPRESSION_ROSS
 
   components RossCompressionM;
   RossCompressionM.InBuffer -> UncompressedBuffer;

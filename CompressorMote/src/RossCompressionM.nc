@@ -14,10 +14,6 @@ module RossCompressionM {
 
 	uint8_t *hash_tbl[HASH_LEN];        /* hash table */
 	uint16_t hash_len;
-	
-	command void OnlineCompressionAlgorithm.init() {
-		signal OnlineCompressionAlgorithm.initDone();
-	}
 
 	command void OnlineCompressionAlgorithm.fileBegin(uint16_t imageWidth) {
 		hash_len = HASH_LEN;
@@ -54,7 +50,7 @@ module RossCompressionM {
 			if (call InBuffer.available() >= 24) {
 				length = 24;
 			} else {
-				length = call Inbuffer.available();
+				length = call InBuffer.available();
 			}
 			*data = NULL; 
 			call InBuffer.readChunk(data, length);
@@ -62,7 +58,7 @@ module RossCompressionM {
 			/* skip the compression for a small buffer */
 			if (length <= 18) {
 				memcpy(outbuff, data, length);
-				signal OnlineCompressionAlgorithm.compressed(outbuff, 0 - length);
+				signal OnlineCompressionAlgorithm.compressed();
 				return;
 			}
 
@@ -165,14 +161,10 @@ module RossCompressionM {
 
 			/* Write compressed bytes to circular buffer */
 			length = out_idx - outbuff;
-			while (OutBuffer.getFreeSpace() < length) {} //Wait until enough space is available in the buffer
+			while (call OutBuffer.getFreeSpace() < length) {} //Wait until enough space is available in the buffer
 			call OutBuffer.writeChunk(outbuff, length);
 			signal OnlineCompressionAlgorithm.compressed();
 		}
-	}
-
-	command void OnlineCompressionAlgorithm.fileEnd() {
-		signal OnlineCompressionAlgorithm.compressDone();
 	}
 
 	command uint8_t OnlineCompressionAlgorithm.getCompressionType() {
