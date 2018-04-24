@@ -1,22 +1,22 @@
 #include "OnlineCompressionAlgorithm.h"
 
-module NoCompressionM{
+module NoCompressionM {
   provides interface OnlineCompressionAlgorithm;
   uses {
     interface CircularBufferReader as InBuffer;
     interface CircularBufferWriter as OutBuffer;
   }
 }
-implementation{
+implementation {
   enum {
     BLOCK_SIZE = 64
   };
 
-  command void OnlineCompressionAlgorithm.fileBegin(uint16_t imageWidth){
+  command void OnlineCompressionAlgorithm.fileBegin(uint16_t imageWidth) {
     call OutBuffer.clear();
   }
   
-  command void OnlineCompressionAlgorithm.compress(bool last){
+  command void OnlineCompressionAlgorithm.compress(bool last) {
     uint8_t byte;
 
       while (call InBuffer.available() > 0) {
@@ -27,7 +27,7 @@ implementation{
     signal OnlineCompressionAlgorithm.compressed();
   }
 
-  command uint8_t OnlineCompressionAlgorithm.getCompressionType(){
+  command uint8_t OnlineCompressionAlgorithm.getCompressionType() {
     return COMPRESSION_TYPE_NONE;
   }
 }

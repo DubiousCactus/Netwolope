@@ -1,23 +1,23 @@
-module ErrorIndicatorM{
+module ErrorIndicatorM {
   provides interface ErrorIndicator;
   uses {
     interface Timer<TMilli> as BlinkTimer;
     interface Leds;
   }
 }
-implementation{
+implementation {
   uint8_t blinkTimes;
   uint8_t currentIteration;
   bool pause;
   
-  command void ErrorIndicator.blinkRed(uint8_t number){
+  command void ErrorIndicator.blinkRed(uint8_t number) {
     blinkTimes = number;
     pause = FALSE;
     call Leds.led0Off();
     call BlinkTimer.startPeriodic(300);
   }
 
-  event void BlinkTimer.fired(){
+  event void BlinkTimer.fired() {
     currentIteration++;
     if (pause == FALSE) {
       call Leds.led0Toggle();

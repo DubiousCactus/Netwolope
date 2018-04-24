@@ -1,6 +1,6 @@
 #include "FlashStorage.h"
 
-module FlashStorageM{
+module FlashStorageM {
   provides {
     interface FlashWriter;
     interface FlashReader;
@@ -13,7 +13,8 @@ module FlashStorageM{
     interface CircularBufferWriter as WriteBuffer;
   }
 }
-implementation{
+implementation {
+  
   enum {
     BUFFER_CAPACITY = 1024,
     PREAMPLE_SIZE = 2,
@@ -170,7 +171,7 @@ implementation{
     }
   }
 
-  event void BlockWrite.syncDone(error_t error){
+  event void BlockWrite.syncDone(error_t error) {
     if (error == SUCCESS) {
       signal FlashWriter.chunkWritten();
     } else {
@@ -178,7 +179,7 @@ implementation{
     }
   }
 
-  event void BlockWrite.eraseDone(error_t error){
+  event void BlockWrite.eraseDone(error_t error) {
     if (error == SUCCESS) {
       post writePreample();
     } else {
