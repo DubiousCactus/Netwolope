@@ -1,7 +1,7 @@
 #include "StorageVolumes.h"
 //#include "printf.h"
 
-#define COMPRESSION_NONE
+#define COMPRESSION_RUN_LENGTH
 
 configuration ProgramC{
 }
@@ -71,6 +71,6 @@ implementation{
   RunLengthEncoderM.InBuffer -> UncompressedBuffer;
   RunLengthEncoderM.OutBuffer -> CompressedBuffer;
   
-  FlashTestM.Compressor -> RunLengthEncoderM;
+  ProgramM.Compressor -> RunLengthEncoderM;
   #endif
 }

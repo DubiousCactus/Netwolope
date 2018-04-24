@@ -32,7 +32,7 @@ interface PCFileReceiver{
    * <code>sendFileBeginAck()</code> must be called to let
    * PC proceed sending data to the mote.
    */
-  event void fileBegin(uint32_t totalLength);
+  event void fileBegin(uint16_t width);
   
   /**
    * Signalled when the mote has received data from the PC.

@@ -3,13 +3,13 @@
  */
 interface FlashWriter {
   /**
-   * Prepares to write a file to the flash. 
+   * Prepares to write image data to the flash. 
    * 
    * <p>Once the preparation is done, <code>readyToWrite</code> is signalled.</p>
    * 
-   * @fileSize The size of the file that needs to be written on the flash.
+   * @imageWidth The width of the image.
    */
-  command void prepareWrite(uint32_t fileSize);
+  command void prepareWrite(uint16_t imageWidth);
 
   /**
    * Writes next chunk of bytes from the buffer to the flash.

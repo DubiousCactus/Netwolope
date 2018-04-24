@@ -1,3 +1,5 @@
+#include "OnlineCompressionAlgorithm.h"
+
 module RunLengthEncoderM{
   provides interface OnlineCompressionAlgorithm as Compressor;
   uses {
@@ -7,7 +9,7 @@ module RunLengthEncoderM{
 }
 implementation{
 
-  command void Compressor.fileBegin(uint32_t totalLength){
+  command void Compressor.fileBegin(uint16_t imageWidth){
     call OutBuffer.clear();
   }
   
@@ -41,6 +43,6 @@ implementation{
   }
 
   command uint8_t Compressor.getCompressionType(){
-    return 1;
+    return COMPRESSION_TYPE_RUN_LENGTH;
   }
 }
