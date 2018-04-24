@@ -12,7 +12,7 @@ implementation{
     BLOCK_SIZE = 64
   };
 
-  command void OnlineCompressionAlgorithm.fileBegin(uint32_t totalLength){
+  command void OnlineCompressionAlgorithm.fileBegin(uint16_t imageWidth){
     call OutBuffer.clear();
   }
   
