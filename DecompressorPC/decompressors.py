@@ -5,6 +5,8 @@ from itertools import izip
 
 COMPRESSION_TYPE_NONE = 0
 COMPRESSION_TYPE_RUN_LENGTH = 1
+COMPRESSION_TYPE_BLOCK_TRUNC = 2
+COMPRESSION_TYPE_ROSS = 3
 
 class DecompressorBase:
   def __init__(self):
@@ -43,6 +45,8 @@ class DecompressorBase:
       return NoCompression()
     elif compression_type == COMPRESSION_TYPE_RUN_LENGTH:
       return RunLengthDecompressor()
+    elif compression_type == COMPRESSION_TYPE_BLOCK_TRUNC:
+      return BlockTruncationDecompressor()
     else:
       return UnknownDecompressor()
 
