@@ -3,8 +3,6 @@
 #include "printf.h"
 #include "StorageVolumes.h"
 
-#define COMPRESSION_BLOCK_TRUNC
-
 configuration ProgramC {
 }
 implementation {
