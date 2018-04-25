@@ -94,3 +94,40 @@ class RunLengthDecompressor(DecompressorBase):
       out_buffer += [data] * count
     return out_buffer
 
+class BlockTruncationDecompressor(DecompressorBase):
+  def __init__(self):
+    DecompressorBase.__init__(self)
+
+  def _name(self):
+    return 'Block Truncation'
+
+  def _get_bit(self, value, position):
+    return ((1 << position) & value) >> position
+
+  def _decompress(self, compressed_data):
+    if len(compressed_data) % 2 != 0:
+      raise Exception('Data size must be even!')
+
+    print('Decompressing using block truncation...')
+    out_buffer = []
+    tuples = izip(*[iter(compressed_data)]*4)
+    for tup in tuples:
+      a = tup[0]
+      b = tup[1]
+      hex1 = tup[2]
+      hex2 = tup[3]
+
+      for i in xrange(8):
+        bit = self._get_bit(hex1, i)
+        if bit == 1:
+          out_buffer.append(a)
+        else:
+          out_buffer.append(b)
+      for i in xrange(8):
+        bit = self._get_bit(hex2, i)
+        if bit == 1:
+          out_buffer.append(a)
+        else:
+          out_buffer.append(b)
+    return out_buffer
+
