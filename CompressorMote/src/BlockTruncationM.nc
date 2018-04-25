@@ -3,6 +3,8 @@
 
 module BlockTruncationM{
   provides interface OnlineCompressionAlgorithm as Compressor;
+  uses interface CircularBufferWriter as OutBuffer;
+  uses interface CircularBufferBlockReader as BlockReader;
 }
 implementation{
   enum {
@@ -188,25 +190,15 @@ implementation{
     DecoderReconstruct(datacompressed,(dcompLength-1)*8);     
   }
   
-  
-  
-  inline error_t readBlock(uint8_t *blockBuffer, uint8_t blockSize, uint8_t blockIndex, uint16_t imageWidth) {
-    uint16_t blockBufferSize = imageWidth * blockSize;
+  inline void compressNextBlock() {
+    uint16_t length = BLOCK_SIZE * BLOCK_SIZE;
+    uint8_t data[BLOCK_SIZE * BLOCK_SIZE]; // Data of size 16
     
-    return;
-  }
-
-  command void Compressor.fileBegin(uint16_t imageWidth){
-    _imageWidth = imageWidth;
-  }
-
-  command void Compressor.compress(bool last){
-    uint16_t length;
-    uint8_t *data; // TODO: Fix this
+    call BlockReader.readNextBlock(data);
     
     uint8_t i,counter=1,inds=0,p;
     uint8_t q=0;
-    uint8_t sendcompressedpackage[2+length/8]; //****** size should be changed
+    uint8_t sendcompressedpackage[2+BLOCK_SIZE]; // TODO: Is it correct?
     uint8_t bits[8] = {1,1,1,1,1,1,1,1};
     uint8_t testbuffer[5] = {1,2,3,4,5};
     float sd,a,b,mean;
@@ -253,19 +245,18 @@ implementation{
     }
     /* SEND ARRAY sendcompressedpackage with length p */
     
-    /*
-     * DECODER DECODER DECODER DECODER DECODER DECODER DECODER DECODER 
-     */
-    Decompress(sendcompressedpackage, p);
-    
-    /*For testing*/
-    PrintArray(data,length);
-    PrintArray(compressbuffer,length);
-    PrintArray(sendcompressedpackage,p+1);
-    PrintArray(decompressbuffer,length);
-    PrintArray(decodebuffer,length);
-    printf("Test of STD %d",(uint8_t)(StandardDeviation(testbuffer,5)*100));
-    printfflush();
+    call OutBuffer.writeChunk(sendcompressedpackage, 4); // TODO: Do not use magic number
+  }
+
+  command void Compressor.fileBegin(uint16_t imageWidth){
+    _imageWidth = imageWidth;
+    call BlockReader.prepare(imageWidth, BLOCK_SIZE);
+  }
+
+  command void Compressor.compress(bool last){
+    while (call BlockReader.hasMoreBlocks()) {
+      compressNextBlock();
+    }
   }
   
   command uint8_t Compressor.getCompressionType(){

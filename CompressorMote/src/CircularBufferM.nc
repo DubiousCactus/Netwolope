@@ -1,4 +1,4 @@
-#include "math.h"
+#include "printf.h"
 
 generic module CircularBufferM(uint16_t CAPACITY) {
   provides {
@@ -103,21 +103,39 @@ implementation{
   command void BlockReader.readNextBlock(uint8_t * outBuffer){
     uint16_t rowOffset, blockOffset, internalBufIdx, outBufferIndex = 0;
     uint8_t i, j;
+    bool debug = TRUE;
     
     rowOffset = (_blockIndex / _blocksPerRow) * _blockRowSize;
-    blockOffset = fmod(_blockIndex, _blocksPerRow);
+    blockOffset = _blockIndex % _blocksPerRow;
+    //debug = _blockIndex > 6;
+//    
+//    if (debug) {
+//      printf("BlockSize: %u\n", _blockSize);
+//      printf("blocksPerRow: %u\n", _blocksPerRow);
+//      printf("BlockIndex: %u\n", _blockIndex);
+//      printf("blockOffset: %u\n", blockOffset);
+//      printf("rowOffset: %u\n", rowOffset);
+//      printfflush();
+//    }
+//    if (debug) printf("\n");
     
     for (i = 0; i < _blockSize; i++) {
-      for (j = 0; j < _blockSize; i++) {
+      for (j = 0; j < _blockSize; j++) {
         internalBufIdx = j + (_blockSize * blockOffset) + (_imageWidth * i) + rowOffset;
+//        if (debug) printf("%u ", internalBufIdx);
+        
         outBuffer[outBufferIndex] = _buf[internalBufIdx];
         outBufferIndex += 1;
         
         // Note: we increment _start variable only because we rely on the
         // available() method to determine when we have reach the end
+        // of the buffer
         _start++;
         if (_start == CAPACITY) _start = 0;
       }
+//      if (debug) printf("\n");
     }
+    _blockIndex += 1;
+    printfflush();
   }
 }

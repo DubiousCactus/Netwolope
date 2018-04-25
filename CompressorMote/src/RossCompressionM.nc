@@ -27,7 +27,7 @@ module RossCompressionM {
 	 */
 	command void OnlineCompressionAlgorithm.compress(bool last) {
 	
-		uint8_t *data; //Data to compress
+		uint8_t data[1024]; //Data to compress
 		uint16_t length; //Number of bytes to compress
 
 		uint8_t outbuff[BUFF_LEN];	
@@ -44,20 +44,16 @@ module RossCompressionM {
 		uint16_t ctrl_cnt = 0;
 		uint8_t *out_idx = outbuff + sizeof(uint16_t);
 		uint8_t *outbuff_end = outbuff + (length - 48);
-
+        
 		while (call InBuffer.available() > 0) {
 			/* Read from the buffer */
-			if (call InBuffer.available() >= 24) {
-				length = 24;
-			} else {
-				length = call InBuffer.available();
-			}
-			*data = NULL; 
+            length = call InBuffer.available();
+
 			call InBuffer.readChunk(data, length);
 
 			/* skip the compression for a small buffer */
 			if (length <= 18) {
-				memcpy(outbuff, data, length);
+				call OutBuffer.writeChunk(data, length);
 				signal OnlineCompressionAlgorithm.compressed();
 				return;
 			}
@@ -78,7 +74,7 @@ module RossCompressionM {
 					out_idx += 2;
 
 					if (out_idx > outbuff_end) {
-						memcpy(outbuff, data, length);
+						// TODO: This should never happen.
 						signal OnlineCompressionAlgorithm.error(OCA_ERR_BUFFER_OVERFLOW);
 						return;
 					}
@@ -161,13 +157,20 @@ module RossCompressionM {
 
 			/* Write compressed bytes to circular buffer */
 			length = out_idx - outbuff;
-			while (call OutBuffer.getFreeSpace() < length) {} //Wait until enough space is available in the buffer
-			call OutBuffer.writeChunk(outbuff, length);
+			
+			if (call OutBuffer.getFreeSpace() < length) {
+			  // TODO: Fix this
+			  signal OnlineCompressionAlgorithm.error(OCA_ERR_OUT_OF_MEMORY);
+			  return;
+			}
+			
+			//while (call OutBuffer.getFreeSpace() < length) {} //Wait until enough space is available in the buffer
+            call OutBuffer.writeChunk(outbuff, length);
 			signal OnlineCompressionAlgorithm.compressed();
 		}
 	}
 
 	command uint8_t OnlineCompressionAlgorithm.getCompressionType() {
-		return COMPRESSION_TYPE_NONE;
+		return COMPRESSION_TYPE_ROSS;
 	}
 }
