@@ -24,6 +24,8 @@ implementation {
   components new CircularBufferM(2048) as CompressedBuffer;
   components FlashStorageM;
   
+  components UserButtonC;
+  
 
   PCFileReceiverM.SerialControl -> Serial;
   PCFileReceiverM.SerialPacket -> Serial;
@@ -57,6 +59,7 @@ implementation {
   ProgramM.FlashError -> FlashStorageM;
   ProgramM.UncompressedBufferReader -> UncompressedBuffer;
   ProgramM.UncompressedBufferWriter -> UncompressedBuffer;
+  ProgramM.ButtonNotify -> UserButtonC;
   
   
   #ifdef COMPRESSION_NONE
