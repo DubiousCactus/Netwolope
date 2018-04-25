@@ -4,7 +4,7 @@
 module BlockTruncationM{
   provides interface OnlineCompressionAlgorithm as Compressor;
   uses interface CircularBufferWriter as OutBuffer;
-  uses interface CircularBufferBlockReader as BlockReader;
+  uses interface CircularBufferBlockReader as InBuffer;
 }
 implementation{
   enum {
@@ -193,15 +193,15 @@ implementation{
   inline void compressNextBlock() {
     uint16_t length = BLOCK_SIZE * BLOCK_SIZE;
     uint8_t data[BLOCK_SIZE * BLOCK_SIZE]; // Data of size 16
-    
-    call BlockReader.readNextBlock(data);
-    
     uint8_t i,counter=1,inds=0,p;
     uint8_t q=0;
     uint8_t sendcompressedpackage[2+BLOCK_SIZE]; // TODO: Is it correct?
     uint8_t bits[8] = {1,1,1,1,1,1,1,1};
-    uint8_t testbuffer[5] = {1,2,3,4,5};
+//    uint8_t testbuffer[5] = {1,2,3,4,5};
     float sd,a,b,mean;
+    
+    
+    call InBuffer.readNextBlock(data);
     printf("Compress image!!\n");
     /*
      * ENCODER ENCODER ENCODER ENCODER ENCODER ENCODER ENCODER
@@ -250,11 +250,11 @@ implementation{
 
   command void Compressor.fileBegin(uint16_t imageWidth){
     _imageWidth = imageWidth;
-    call BlockReader.prepare(imageWidth, BLOCK_SIZE);
+    call InBuffer.prepare(imageWidth, BLOCK_SIZE);
   }
 
   command void Compressor.compress(bool last){
-    while (call BlockReader.hasMoreBlocks()) {
+    while (call InBuffer.hasMoreBlocks()) {
       compressNextBlock();
     }
   }

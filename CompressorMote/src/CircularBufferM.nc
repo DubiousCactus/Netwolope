@@ -103,7 +103,7 @@ implementation{
   command void BlockReader.readNextBlock(uint8_t * outBuffer){
     uint16_t rowOffset, blockOffset, internalBufIdx, outBufferIndex = 0;
     uint8_t i, j;
-    bool debug = TRUE;
+//    bool debug = TRUE;
     
     rowOffset = (_blockIndex / _blocksPerRow) * _blockRowSize;
     blockOffset = _blockIndex % _blocksPerRow;

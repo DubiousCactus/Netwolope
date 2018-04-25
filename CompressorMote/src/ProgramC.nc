@@ -2,9 +2,8 @@
 
 #include "printf.h"
 #include "StorageVolumes.h"
-//#include "printf.h"
 
-#define COMPRESSION_RUN_LENGTH
+#define COMPRESSION_BLOCK_TRUNC
 
 configuration ProgramC {
 }
@@ -26,6 +25,7 @@ implementation {
   components new CircularBufferM(1024) as UncompressedBuffer;
   components new CircularBufferM(2048) as CompressedBuffer;
   components FlashStorageM;
+  
 
   PCFileReceiverM.SerialControl -> Serial;
   PCFileReceiverM.SerialPacket -> Serial;
@@ -75,6 +75,14 @@ implementation {
   RunLengthEncoderM.InBuffer -> UncompressedBuffer;
   RunLengthEncoderM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> RunLengthEncoderM;
+
+  #endif
+  #ifdef COMPRESSION_BLOCK_TRUNC
+
+  components BlockTruncationM;
+  BlockTruncationM.InBuffer -> UncompressedBuffer;
+  BlockTruncationM.OutBuffer -> CompressedBuffer;
+  ProgramM.Compressor -> BlockTruncationM;
 
   #endif
   #if COMPRESSION_ROSS
