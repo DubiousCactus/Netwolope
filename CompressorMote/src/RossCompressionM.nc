@@ -98,7 +98,7 @@ module RossCompressionM {
 						*out_idx++ = c;
 					} else { /* long rle */
 						cnt -= 19;
-						*out_idx++ = 16 + (cnt & 0x00F);
+						*out_idx++ = 16 + (cnt & 0x0F);
 						*out_idx++ = cnt >> 4;
 						*out_idx++ = c;
 					}
