@@ -34,7 +34,7 @@ int rdc_decompress(uchar *inbuff, uint inbuff_len, uchar *outbuff)
 	uint   len;
 
 	/* process each item in inbuff */
-  
+
   while (inbuff_idx < inbuff_end)
   {
     /* get new load of control bits if needed */
@@ -102,7 +102,7 @@ int rdc_decompress(uchar *inbuff, uint inbuff_len, uchar *outbuff)
 
 void err_exit(char *fmt, ...)
 {
-va_list v;
+  va_list v;
 
   va_start(v, fmt);
   vfprintf(stderr, fmt, v);
@@ -125,14 +125,16 @@ void do_decompress()
     if (fread(&block_len, sizeof(int), 1, infile) != 1)
         err_exit("Can't read block length.\n");
 
-    /* check for end-of-file flag */
+    printf("Block length: %d\n", block_len);
 
+    /* check for end-of-file flag */
     if (block_len == 0)
       return;
 
     if (block_len < 0)  /* copy uncompressed chars */
     {
       decomp_len = 0 - block_len;
+      printf("Reading uncompressed block of size %d\n", decomp_len);
       if (fread(outbuff, decomp_len, 1, infile) != 1)
         err_exit("Can't read uncompressed block.\n");
     }
@@ -146,7 +148,6 @@ void do_decompress()
     }
 
     /* and write this buffer outfile */
-
     if (fwrite(outbuff, decomp_len, 1, outfile) != 1)
       err_exit("Error writing uncompressed data.\n");
   }
@@ -159,12 +160,14 @@ int main(char argc, char **argv) {
 		printf("Usage: %s <input_file> <output_file>\n", argv[0]);
 		return 1;
 	}
-	
+
 	if ((infile = fopen(argv[1], "rb")) == NULL)
 		err_exit("Can't open %s for input.\n", argv[1]);
 
 	  if ((outfile = fopen(argv[2], "wb")) == NULL)
 		err_exit("Can't open %s for output.\n", argv[2]);
+
+	  do_decompress();
 
 	  if (fclose(infile))
 		err_exit("Error closing input file.\n");

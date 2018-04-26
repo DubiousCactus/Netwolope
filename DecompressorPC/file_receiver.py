@@ -16,8 +16,8 @@ if '-h' in sys.argv:
 
 AM_MSG_BEGIN_FILE         = 64
 AM_MSG_BEGIN_FILE_ACK     = 65
-AM_MSG.rawIAL_DATA       = 66
-AM_MSG_ACK.rawIAL_DATA   = 67
+AM_MSG_PARTIAL_DATA       = 66
+AM_MSG_ACK_PARTIAL_DATA   = 67
 AM_MSG_EOF                = 68
 AM_MSG_EOF_ACK            = 69
 
@@ -45,7 +45,7 @@ class BeginFileActMsg(tos.Packet):
     tos.Packet.__init__(self, packet_desc, packet)
 
 
-class.rawialDataMsg(tos.Packet):
+class PartialDataMsg(tos.Packet):
   def __init__(self, packet = None):
     packet_desc = [
       ('data', 'blob', None),
@@ -53,7 +53,7 @@ class.rawialDataMsg(tos.Packet):
     tos.Packet.__init__(self, packet_desc, packet)
 
 
-class.rawialDataActMsg(tos.Packet):
+class PartialDataActMsg(tos.Packet):
   def __init__(self, packet = None):
     packet_desc = [
       ('nextSeqNo', 'int', 2),
@@ -93,8 +93,8 @@ class MoteFileReceiver:
     self.no_packets = 0
     while True:
       packet = self.am.read()
-      if packet.type == AM_MSG.rawIAL_DATA:
-        msg =.rawialDataMsg(packet.data)
+      if packet.type == AM_MSG_PARTIAL_DATA:
+        msg = PartialDataMsg(packet.data)
         data = msg.data
         data_size = len(data)
         self.received_data_count += data_size
