@@ -1,4 +1,4 @@
-COMPONENT=src/SinkMoteC
+COMPONENT=src/ProgramC
 
 CFLAGS += -Isrc
 CFLAGS += -I$(TOSDIR)/lib/printf

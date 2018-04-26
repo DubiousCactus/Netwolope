@@ -2,11 +2,12 @@
 #define PCFILE_RECEIVER_H
 
 typedef enum {
+  PFR_ERR_BUFFER_FULL = 6,
   /**
    * Expected call a call to <code>.receiveMore</code>
    * but did not received
    */
-  PFR_ERR_EXPECTED_RECEIVE_MORE = 2,
+  PFR_ERR_EXPECTED_RECEIVE_MORE,
   
   /**
    * Indicates a programmer error. This error should
@@ -27,7 +28,7 @@ typedef enum {
   /**
    * Packet received from the PC is dropped.
    */
-  PFR_ERR_PACKET_DROPPED
+  PFR_ERR_PACKET_DROPPED,
 } PCFileReceiverError;
 
 #endif /* PCFILE_RECEIVER_H */

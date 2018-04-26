@@ -1,5 +1,5 @@
-#include "RadioHeader.h"
 #include "Timer.h"
+
 module RadioReceiverM{
   provides interface RadioReceiver;
   uses interface Packet;
@@ -11,23 +11,36 @@ module RadioReceiverM{
 }
 implementation{
   enum {
+    AM_MSG_BEGIN_FILE         = 20,
+    AM_MSG_ACK_BEGIN_FILE     = 21,
     AM_MSG_PARTIAL_DATA       = 22,
     AM_MSG_ACK_PARTIAL_DATA   = 23,
     AM_MSG_EOF                = 24,
     AM_MSG_ACK_EOF            = 25,
   };
   
+  typedef nx_struct {
+    nx_uint32_t uncompressedSize;
+    nx_uint8_t compressionType;
+  } BeginFileMsg;
+  
   message_t pkt;
   
-  void sendPartialDataAckMsg() {
+  task void sendPartialDataAckMsg() {
     if (call RadioSend.send[AM_MSG_ACK_PARTIAL_DATA](AM_BROADCAST_ADDR, &pkt, 0) != SUCCESS) {
-      signal RadioReceiver.error(RR_ERR_SEND_FAILED);
+      post sendPartialDataAckMsg();
     }
   }
   
-  void sendEOFAckMsg() {
+  task void sendEOFAckMsg() {
     if (call RadioSend.send[AM_MSG_ACK_EOF](AM_BROADCAST_ADDR, &pkt, 0) != SUCCESS) {
-      signal RadioReceiver.error(RR_ERR_SEND_FAILED);
+      post sendEOFAckMsg();
+    }
+  }
+  
+  task void sendBeginFileAckMsg() {
+    if (call RadioSend.send[AM_MSG_ACK_BEGIN_FILE](AM_BROADCAST_ADDR, &pkt, 0) != SUCCESS) {
+      post sendBeginFileAckMsg();
     }
   }
   
@@ -48,13 +61,28 @@ implementation{
   }
 
   event message_t * RadioReceive.receive[am_id_t msg_type](message_t *msg, void *payload, uint8_t len){
-    if (msg_type == AM_MSG_PARTIAL_DATA) {
+    if (msg_type == AM_MSG_BEGIN_FILE) {
+      BeginFileMsg* bfmsg = (BeginFileMsg*)payload;
+      signal RadioReceiver.receivedFileBegin(bfmsg->uncompressedSize, bfmsg->compressionType);
+      
+    } else if (msg_type == AM_MSG_PARTIAL_DATA) {
       signal RadioReceiver.receivedData((uint8_t*)payload, len);
-      sendPartialDataAckMsg();
+    
     } else if (msg_type == AM_MSG_EOF) {
       signal RadioReceiver.receivedEOF();
-      sendEOFAckMsg();
     }
     return msg;
+  }
+
+  command void RadioReceiver.sendEOFAckMsg(){
+    post sendEOFAckMsg();
+  }
+
+  command void RadioReceiver.sendBeginFileAckMsg(){
+    post sendBeginFileAckMsg();
+  }
+
+  command void RadioReceiver.sendPartialDataAckMsg(){
+    post sendPartialDataAckMsg();
   }
 }
