@@ -42,9 +42,6 @@ implementation {
     call Leds.led1Toggle();
     call PCFileReceiver.receiveMore();
   }
-
-
-
   
   event void PCFileReceiver.fileEnd(){
     call FlashReader.prepareRead();

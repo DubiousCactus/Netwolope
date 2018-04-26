@@ -4,7 +4,7 @@
 #include "StorageVolumes.h"
 //#include "printf.h"
 
-#define COMPRESSION_RUN_LENGTH
+#define COMPRESSION_ROSS
 
 configuration ProgramC {
 }
@@ -62,21 +62,21 @@ implementation {
   ProgramM.UncompressedBufferWriter -> UncompressedBuffer;
   
   
-  #ifdef COMPRESSION_NONE
+  #if defined(COMPRESSION_NONE)
 
   components NoCompressionM;
   NoCompressionM.InBuffer -> UncompressedBuffer;
   NoCompressionM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> NoCompressionM;
 
-  #elseif COMPRESSION_RUN_LENGTH
+  #elif defined(COMPRESSION_RUN_LENGTH)
 
   components RunLengthEncoderM;
   RunLengthEncoderM.InBuffer -> UncompressedBuffer;
   RunLengthEncoderM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> RunLengthEncoderM;
 
-  #elseif COMPRESSION_ROSS
+  #elif defined(COMPRESSION_ROSS)
 
   components RossCompressionM;
   RossCompressionM.InBuffer -> UncompressedBuffer;

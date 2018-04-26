@@ -14,10 +14,6 @@ module RossCompressionM {
 
 	uint8_t *hash_tbl[HASH_LEN];        /* hash table */
 	uint16_t hash_len;
-	
-	command void OnlineCompressionAlgorithm.init() {
-		signal OnlineCompressionAlgorithm.initDone();
-	}
 
 	command void OnlineCompressionAlgorithm.fileBegin(uint16_t imageWidth) {
 		hash_len = HASH_LEN;
@@ -31,8 +27,8 @@ module RossCompressionM {
 	 */
 	command void OnlineCompressionAlgorithm.compress(bool last) {
 	
-		uint8_t *data; //Data to compress
-		uint16_t length; //Number of bytes to compress
+		uint8_t data[1024]; //Data to compress
+		uint16_t length = call InBuffer.available(); //Number of bytes to compress
 
 		uint8_t outbuff[BUFF_LEN];	
 		uint8_t *in_idx = data;
@@ -51,18 +47,13 @@ module RossCompressionM {
 
 		while (call InBuffer.available() > 0) {
 			/* Read from the buffer */
-			if (call InBuffer.available() >= 24) {
-				length = 24;
-			} else {
-				length = call Inbuffer.available();
-			}
-			*data = NULL; 
+			length = call InBuffer.available();
 			call InBuffer.readChunk(data, length);
 
 			/* skip the compression for a small buffer */
 			if (length <= 18) {
-				memcpy(outbuff, data, length);
-				signal OnlineCompressionAlgorithm.compressed(outbuff, 0 - length);
+				call OutBuffer.writeChunk(data, length);
+				signal OnlineCompressionAlgorithm.compressed();
 				return;
 			}
 
@@ -82,7 +73,7 @@ module RossCompressionM {
 					out_idx += 2;
 
 					if (out_idx > outbuff_end) {
-						memcpy(outbuff, data, length);
+						call OutBuffer.writeChunk(data, length);
 						signal OnlineCompressionAlgorithm.error(OCA_ERR_BUFFER_OVERFLOW);
 						return;
 					}
@@ -164,18 +155,19 @@ module RossCompressionM {
 			*ctrl_idx = ctrl_bits;
 
 			/* Write compressed bytes to circular buffer */
+			if (call OutBuffer.getFreeSpace() < length) {
+				/* TODO: Implement retry timer */
+				signal OnlineCompressionAlgorithm.error(OCA_ERR_OUT_OF_MEMORY);
+				return;
+			}
+
 			length = out_idx - outbuff;
-			while (OutBuffer.getFreeSpace() < length) {} //Wait until enough space is available in the buffer
 			call OutBuffer.writeChunk(outbuff, length);
 			signal OnlineCompressionAlgorithm.compressed();
 		}
 	}
 
-	command void OnlineCompressionAlgorithm.fileEnd() {
-		signal OnlineCompressionAlgorithm.compressDone();
-	}
-
 	command uint8_t OnlineCompressionAlgorithm.getCompressionType() {
-		return COMPRESSION_TYPE_NONE;
+		return COMPRESSION_TYPE_ROSS;
 	}
 }
