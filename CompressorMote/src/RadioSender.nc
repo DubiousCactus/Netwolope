@@ -24,3 +24,4 @@ interface RadioSender{
   event void fileBeginAcknowledged();
   event void error(RadioSenderError error);
 }
+

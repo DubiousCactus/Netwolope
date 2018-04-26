@@ -1,6 +1,6 @@
 #include "OnlineCompressionAlgorithm.h"
 
-interface OnlineCompressionAlgorithm{
+interface OnlineCompressionAlgorithm {
   command uint8_t getCompressionType();
   command void fileBegin(uint16_t imageWidth);
   command void compress(bool last);

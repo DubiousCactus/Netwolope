@@ -3,6 +3,7 @@
 
 typedef enum {
   OCA_ERR_INVALID_FILE = 40,
+  OCA_ERR_BUFFER_OVERFLOW = 50,
 } CompressionError;
 
 enum {

@@ -1,19 +1,25 @@
+#define NEW_PRINTF_SEMANTICS
+
+#include "printf.h"
 #include "StorageVolumes.h"
 //#include "printf.h"
 
 #define COMPRESSION_RUN_LENGTH
 
-configuration ProgramC{
+configuration ProgramC {
 }
-implementation{
+implementation {
   components MainC;
+  components PrintfC;
+  components SerialStartC;
   components LedsC;
   components ProgramM;
   components SerialActiveMessageC as Serial;
+  components new TimerMilliC() as Timer;
+  
   components ActiveMessageC as Radio;
   
   components new BlockStorageC(VOLUME_BLOCKTEST) as BlockStorage;
-  components new TimerMilliC() as Timer0;
   components PCFileReceiverM;
   components RadioSenderM;
   
@@ -41,7 +47,7 @@ implementation{
   RadioSenderM.RadioControl -> Radio;
   RadioSenderM.Reader -> CompressedBuffer;
 
-  ErrorIndicatorM.BlinkTimer -> Timer0;
+  ErrorIndicatorM.BlinkTimer -> Timer;
   ErrorIndicatorM.Leds -> LedsC;
   
   ProgramM.Boot -> MainC;
@@ -57,20 +63,25 @@ implementation{
   
   
   #ifdef COMPRESSION_NONE
+
   components NoCompressionM;
-  
   NoCompressionM.InBuffer -> UncompressedBuffer;
   NoCompressionM.OutBuffer -> CompressedBuffer;
-  
   ProgramM.Compressor -> NoCompressionM;
-  #endif
-  
-  #ifdef COMPRESSION_RUN_LENGTH
+
+  #elseif COMPRESSION_RUN_LENGTH
+
   components RunLengthEncoderM;
-  
   RunLengthEncoderM.InBuffer -> UncompressedBuffer;
   RunLengthEncoderM.OutBuffer -> CompressedBuffer;
-  
   ProgramM.Compressor -> RunLengthEncoderM;
+
+  #elseif COMPRESSION_ROSS
+
+  components RossCompressionM;
+  RossCompressionM.InBuffer -> UncompressedBuffer;
+  RossCompressionM.OutBuffer -> CompressedBuffer;
+  ProgramM.Compressor -> RossCompressionM;
+
   #endif
 }
