@@ -7,7 +7,7 @@ module RadioReceiverM{
   uses interface AMSend as RadioSend[am_id_t msg_type];
   uses interface Receive as RadioReceive[am_id_t msg_type];
   uses interface SplitControl as RadioControl;
-  
+
 }
 implementation{
   enum {
@@ -18,32 +18,32 @@ implementation{
     AM_MSG_EOF                = 24,
     AM_MSG_ACK_EOF            = 25,
   };
-  
+
   typedef nx_struct {
     nx_uint32_t uncompressedSize;
     nx_uint8_t compressionType;
   } BeginFileMsg;
-  
+
   message_t pkt;
-  
+
   task void sendPartialDataAckMsg() {
     if (call RadioSend.send[AM_MSG_ACK_PARTIAL_DATA](AM_BROADCAST_ADDR, &pkt, 0) != SUCCESS) {
       post sendPartialDataAckMsg();
     }
   }
-  
+
   task void sendEOFAckMsg() {
     if (call RadioSend.send[AM_MSG_ACK_EOF](AM_BROADCAST_ADDR, &pkt, 0) != SUCCESS) {
       post sendEOFAckMsg();
     }
   }
-  
+
   task void sendBeginFileAckMsg() {
     if (call RadioSend.send[AM_MSG_ACK_BEGIN_FILE](AM_BROADCAST_ADDR, &pkt, 0) != SUCCESS) {
       post sendBeginFileAckMsg();
     }
   }
-  
+
   command void RadioReceiver.init(){
     call RadioControl.start();
   }
@@ -64,10 +64,10 @@ implementation{
     if (msg_type == AM_MSG_BEGIN_FILE) {
       BeginFileMsg* bfmsg = (BeginFileMsg*)payload;
       signal RadioReceiver.receivedFileBegin(bfmsg->uncompressedSize, bfmsg->compressionType);
-      
+
     } else if (msg_type == AM_MSG_PARTIAL_DATA) {
       signal RadioReceiver.receivedData((uint8_t*)payload, len);
-    
+
     } else if (msg_type == AM_MSG_EOF) {
       signal RadioReceiver.receivedEOF();
     }
