@@ -1,5 +1,4 @@
 #include <UserButton.h>
-#include "printf.h"
 
 module ProgramM {
   uses {
@@ -113,7 +112,7 @@ implementation {
   };
   
   event void Boot.booted(){
-    for (i = 0; i < 1040; i++)
+    for (i = 0; i < sizeof(mock); i++)
       call UncompressedBufferWriter.write(mock[i]);
     
     call Button.enable();
@@ -150,7 +149,6 @@ implementation {
   
   event void FlashReader.readyToRead(uint16_t width){
     _imageWidth = width;
-    call Leds.led2Toggle();
     call RadioSender.init();
   }
   
@@ -174,9 +172,18 @@ implementation {
   event void Button.notify(button_state_t state) {
     printf("BUTTON NOTIFY\n");
     if (state == BUTTON_PRESSED && compressed) {
+      printf("Compressed mock data: \n\n");
+      /*for (i = 0; i < sizeof(mock); i++) {
+        if (i % 5 == 0)
+          printf("\n");
+
+        printf("%02X ", mock[i]);
+      }*/
+
+      printf("\n\n");
+      printfflush();
       call RadioSender.sendPartialData();
     }
-    printfflush();
   }
 
   event void RadioSender.sendDone(){

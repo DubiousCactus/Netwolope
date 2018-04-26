@@ -77,6 +77,7 @@ implementation{
   command void RadioSender.sendPartialData(){
     uint8_t transferSize = 0;
     uint16_t availableBytes = 0;
+    uint16_t i;
     PartialDataMsg* msg;
     
     if (currentState != STATE_READY) {
@@ -98,6 +99,16 @@ implementation{
         return;
       }
       
+      printf("Compressed mock data: \n\n");
+      for (i = 0; i < transferSize; i++) {
+        if (i % 12 == 0)
+          printf("\n");
+
+        printf("%02X ", msg->data[i]);
+      }
+
+      printf("\n\n");
+      printfflush();
       currentState = STATE_SENDING_PARTIAL_DATA;
       if (call RadioSend.send[AM_MSG_PARTIAL_DATA](AM_BROADCAST_ADDR, &pkt, transferSize) != SUCCESS) {
         signal RadioSender.error(RS_ERR_SEND_FAILED);

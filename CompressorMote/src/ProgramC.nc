@@ -2,7 +2,7 @@
 
 #include "printf.h"
 #include "StorageVolumes.h"
-//#include "printf.h"
+#include <UserButton.h>
 
 #define COMPRESSION_ROSS
 
@@ -27,6 +27,8 @@ implementation {
   components new CircularBufferM(1024) as UncompressedBuffer;
   components new CircularBufferM(2048) as CompressedBuffer;
   components FlashStorageM;
+
+  components UserButtonC;
 
   PCFileReceiverM.SerialControl -> Serial;
   PCFileReceiverM.SerialPacket -> Serial;
@@ -60,7 +62,7 @@ implementation {
   ProgramM.FlashError -> FlashStorageM;
   ProgramM.UncompressedBufferReader -> UncompressedBuffer;
   ProgramM.UncompressedBufferWriter -> UncompressedBuffer;
-  
+  ProgramM.Button -> UserButtonC; 
   
   #if defined(COMPRESSION_NONE)
 
