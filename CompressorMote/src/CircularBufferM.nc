@@ -5,6 +5,7 @@ generic module CircularBufferM(uint16_t CAPACITY) {
     interface CircularBufferReader as Reader;
     interface CircularBufferWriter as Writer;
     interface CircularBufferBlockReader as BlockReader;
+    interface FlashError as FlashError;
   }
 }
 implementation{
@@ -19,6 +20,7 @@ implementation{
   uint16_t _blockIndex = 0;
   
   inline uint16_t available() {
+    //printf("start %d end=%d end\n", _start, _end);
     if (_start <= _end)
       return _end - _start;
     else
@@ -26,7 +28,7 @@ implementation{
   }
   
   inline uint16_t getFreeSpace() { 
-    return CAPACITY - available() - 1; 
+    return CAPACITY - available() - 1;
   }
 
   command uint16_t Reader.available(){
@@ -38,7 +40,8 @@ implementation{
       // Nothing in the buffer
       return FAIL;
     } else {
-      *byte = _buf[_start++];
+      *byte = _buf[_start];
+      _start++;
       if (_start == CAPACITY) _start = 0;
       return SUCCESS;
     }
@@ -66,7 +69,8 @@ implementation{
     if (_end + 1 == _start || (_start == 0 && _end + 1 == CAPACITY)) {
       return FAIL;
     }
-    _buf[_end++] = byte;
+    _buf[_end] = byte;
+    _end++;
     if (_end == CAPACITY) _end = 0;
     return SUCCESS;
   }
@@ -97,7 +101,16 @@ implementation{
   }
   
   command bool BlockReader.hasMoreBlocks(){
-    return _blockIndex < available() / (_blockSize * _blockSize);
+    uint16_t avail = available();
+    uint16_t blockSizeSquared = _blockSize * _blockSize;
+    
+    if ((_blockIndex < _blocksPerRow * _blocksPerRow) == FALSE) {
+      printf("HasMoreBlocks is false ");
+      printf("Available: %u ", avail);
+      printf("GetFreeSpace: %u \n", getFreeSpace());
+    }
+    
+    return _blockIndex < _blocksPerRow * _blocksPerRow;
   }
   
   command void BlockReader.readNextBlock(uint8_t * outBuffer){
@@ -136,6 +149,5 @@ implementation{
 //      if (debug) printf("\n");
     }
     _blockIndex += 1;
-    printfflush();
   }
 }

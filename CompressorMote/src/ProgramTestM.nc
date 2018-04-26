@@ -10,28 +10,17 @@ module ProgramTestM{
   }
 }
 implementation{
+  uint16_t blockIndex = 0;
 
-  event void Boot.booted(){
-    uint16_t i;
-    uint8_t byte;
+  task void test() {
     uint8_t blockBuffer[16];
-    uint8_t y;
+    uint16_t i;
     
-    call Leds.set(0);
+    call BlockReader.readNextBlock(blockBuffer);
     
-    call BufferWriter.clear();
+//    printf("BI: %u\n", blockIndex);
     
-    for (i = 0; i < 1024; i++) {
-      byte = (i+128) % 255;
-      call BufferWriter.write(byte);
-    }
-    
-    call BlockReader.prepare(32, 4);
-    
-    
-    while (call BlockReader.hasMoreBlocks()) {
-      call BlockReader.readNextBlock(blockBuffer);
-      
+    if (blockIndex > 60) {
       for (i = 1; i < 17; i++) {
         printf("%u ", blockBuffer[i-1]);
         
@@ -39,12 +28,40 @@ implementation{
           printf("\n");
         }
       }
-      
-      printf("\n");
-      printfflush();
+      printf("\n");      
     }
     
-    call Leds.led1On();
+    printfflush();
+      
+    if (call BlockReader.hasMoreBlocks()) {
+      blockIndex++;
+      post test();
+    }
+  }
+
+  event void Boot.booted(){
+    uint16_t i;
+    uint8_t byte;
+    error_t err;
     
+    call Leds.set(0);
+    call Leds.led1On();
+    call BufferWriter.clear();
+    
+    for (i = 0; i < 1024; i++) {
+      byte = (i+128) % 255;
+      err = call BufferWriter.write(byte);
+      if (err == FAIL) {
+        printf("FAIL!\n");
+        call Leds.led0On();
+        return;
+      }
+    }
+    
+    call BlockReader.prepare(32, 4);
+    
+    post test();
+    
+    call Leds.led2On();
   }
 }

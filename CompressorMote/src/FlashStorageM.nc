@@ -1,4 +1,5 @@
 #include "FlashStorage.h"
+#include "printf.h"
 
 module FlashStorageM {
   provides {
@@ -71,9 +72,13 @@ implementation {
   
   task void readTask() {
     static int posted;
-    uint16_t readSize, bytesFree;
-    
+    uint16_t readSize;
+    uint16_t bytesFree;
+
     bytesFree = call WriteBuffer.getFreeSpace();
+    
+    printf("ReadTask freeSpace=%u\n", call WriteBuffer.getFreeSpace());
+    
     if (bytesFree > BUFFER_CAPACITY) {
       readSize = BUFFER_CAPACITY;
     } else {
@@ -83,6 +88,8 @@ implementation {
     if (_index + readSize > _endIndex) {
       readSize = _endIndex - _index;
     }
+    
+    printf("ReadTask: readSize=%u endIndex=%u\n", readSize, _endIndex);
     
     posted = call BlockRead.read(_index, _buffer, readSize) == SUCCESS;
     if (!posted) post readTask();
@@ -101,6 +108,7 @@ implementation {
     _imageWidth = 0; // image width is set when preamble is read
     _endIndex = 0;  // computed when preamble is read
     call WriteBuffer.clear();
+    printf("prepareRead: %u\n", call WriteBuffer.getFreeSpace());
     post readPreamble();
   }
 
@@ -142,7 +150,11 @@ implementation {
       return;
     }
     
+    
+    printf("   Flash.readDone. Before Index: %u\n", _index);
     _index += len;
+    printf("   Flash.readDone. After Index: %u\n", _index);
+    
     call WriteBuffer.writeChunk(_buffer, len);
     if (call WriteBuffer.getFreeSpace() > 0 && _index < _endIndex) {
       post readTask();

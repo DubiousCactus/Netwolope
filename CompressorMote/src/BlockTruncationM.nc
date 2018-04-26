@@ -202,7 +202,6 @@ implementation{
     
     
     call InBuffer.readNextBlock(data);
-    printf("Compress image!!\n");
     /*
      * ENCODER ENCODER ENCODER ENCODER ENCODER ENCODER ENCODER
      */
@@ -244,6 +243,10 @@ implementation{
       counter++;
     }
     /* SEND ARRAY sendcompressedpackage with length p */
+    printf("[%u, ", sendcompressedpackage[0]);
+    printf("%u, ", sendcompressedpackage[1]);
+    printf("%u, ", sendcompressedpackage[2]);
+    printf("%u]\n", sendcompressedpackage[3]);
     
     call OutBuffer.writeChunk(sendcompressedpackage, 4); // TODO: Do not use magic number
   }
@@ -254,9 +257,17 @@ implementation{
   }
 
   command void Compressor.compress(bool last){
+    uint16_t blockIndex = 0;
+    
+    printf("\n\nBT Start:\n", blockIndex);
     while (call InBuffer.hasMoreBlocks()) {
       compressNextBlock();
+      blockIndex += 1;
     }
+    
+    printf("Done: %u\n", blockIndex);
+    printfflush();
+    signal Compressor.compressed();
   }
   
   command uint8_t Compressor.getCompressionType(){

@@ -5,7 +5,7 @@ implementation{
   components MainC;
   components PrintfC;
   components LedsC;
-  components new CircularBufferM(1024) as Buffer;
+  components new CircularBufferM(1025) as Buffer;
   
   ProgramTestM.Boot -> MainC;
   ProgramTestM.Leds -> LedsC;

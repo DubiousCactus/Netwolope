@@ -20,8 +20,8 @@ implementation {
   components RadioSenderM;
   
   components ErrorIndicatorM;
-  components new CircularBufferM(1024) as UncompressedBuffer;
-  components new CircularBufferM(2048) as CompressedBuffer;
+  components new CircularBufferM(1025) as UncompressedBuffer;
+  components new CircularBufferM(2049) as CompressedBuffer;
   components FlashStorageM;
   
   components UserButtonC;
@@ -65,7 +65,8 @@ implementation {
   #ifdef COMPRESSION_NONE
 
   components NoCompressionM;
-  NoCompressionM.InBuffer -> UncompressedBuffer;
+//  NoCompressionM.InBuffer -> UncompressedBuffer;
+  NoCompressionM.BlockReader -> UncompressedBuffer;
   NoCompressionM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> NoCompressionM;
 

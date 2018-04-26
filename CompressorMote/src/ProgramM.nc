@@ -1,4 +1,5 @@
 #include <UserButton.h>
+#include "printf.h"
 
 module ProgramM {
   uses {
@@ -29,6 +30,7 @@ implementation {
   }
   
   event void Boot.booted(){
+    printf("Booted\n");
     call ButtonNotify.enable();
     call PCFileReceiver.init();
   }
@@ -75,17 +77,23 @@ implementation {
   event void RadioSender.fileBeginAcknowledged(){ 
     call Compressor.fileBegin(_imageWidth);
     call FlashReader.readNextChunk();
+    call Leds.led1Toggle();
   }
+  
 
   event void FlashReader.chunkRead(){
-    call Compressor.compress(call FlashReader.isFinished());
+    bool isFinished = call FlashReader.isFinished();
+    printf("Flash finished %u\n\n", isFinished);
+    call Compressor.compress(isFinished);
   }
   
   event void Compressor.compressed(){
+    printf("Sending compressed data\n");
     call RadioSender.sendPartialData();
   }
 
   event void RadioSender.sendDone(){
+    printf("Send done!\n");
     if (call RadioSender.canSend()) {
       call RadioSender.sendPartialData();
       
@@ -95,6 +103,7 @@ implementation {
       
     } else {
       call FlashReader.readNextChunk();
+      call Leds.led1Toggle();
     }
   }  
   
