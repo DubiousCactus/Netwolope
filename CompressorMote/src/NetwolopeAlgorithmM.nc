@@ -2,8 +2,9 @@
 #include <math.h>
 
 module NetwolopeAlgorithmM{
-	provides interface OnlineCompressionAlgorithm;
-	uses interface Leds;
+	provides interface OnlineCompressionAlgorithm as Compressor;
+	uses interface CircularBufferWriter as OutBuffer;
+    uses interface CircularBufferBlockReader as InBuffer;
 }
 implementation{
 	/**
@@ -23,17 +24,13 @@ implementation{
 		printf("\n");
 	}
 
-	
-	command void OnlineCompressionAlgorithm.fileEnd(){
-		// TODO Auto-generated method stub
-	}
 
-	command uint8_t OnlineCompressionAlgorithm.getCompressionType(){
+	command uint8_t Compressor.getCompressionType(){
 		return 1;
 	}
 
-	command void OnlineCompressionAlgorithm.fileBegin(uint32_t totalLength){
-		// TODO Auto-generated method stub
+	command void Compressor.fileBegin(uint16_t imageWidth){
+		
 	}
 
 	void toBitArray(unsigned int n,uint8_t * out, unsigned int length){
@@ -94,8 +91,10 @@ implementation{
 	}
 	
 	
-	command void OnlineCompressionAlgorithm.compress(uint8_t *data, uint16_t length){
+	command void Compressor.compress(bool isLast){
 		int i;
+		uint8_t data[16]; // TODO Fix this
+		uint16_t length = 16; // TODO Fix this
 		uint8_t outA[4];
 		uint8_t outB[4];
 		uint8_t outC[8];
@@ -127,10 +126,6 @@ implementation{
 	}
 	
 
-	command void OnlineCompressionAlgorithm.init(){
-		// TODO Auto-generated method stub
-	}
-	
 	
 	
 }
