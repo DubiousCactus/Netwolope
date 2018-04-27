@@ -168,11 +168,13 @@ implementation {
   }
   
   event void Compressor.compressed(){
+    printf("Compression done !\n");
     compressed = 1;
   }
 
   event void Button.notify(button_state_t state) {
     printf("BUTTON NOTIFY\n");
+    printf("Compressed: %d\n", compressed);
     if (state == BUTTON_PRESSED && compressed) {
       call RadioSender.sendPartialData();
     }
