@@ -77,7 +77,7 @@ implementation {
 
     bytesFree = call WriteBuffer.getFreeSpace();
     
-    printf("ReadTask freeSpace=%u\n", call WriteBuffer.getFreeSpace());
+    printf("ReadTask un-buffer freeSpace=%u\n", call WriteBuffer.getFreeSpace());
     
     if (bytesFree > BUFFER_CAPACITY) {
       readSize = BUFFER_CAPACITY;

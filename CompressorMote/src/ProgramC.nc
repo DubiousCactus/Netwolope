@@ -65,7 +65,7 @@ implementation {
   #ifdef COMPRESSION_NONE
 
   components NoCompressionM;
-//  NoCompressionM.InBuffer -> UncompressedBuffer;
+  NoCompressionM.InBuffer -> UncompressedBuffer;
   NoCompressionM.BlockReader -> UncompressedBuffer;
   NoCompressionM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> NoCompressionM;

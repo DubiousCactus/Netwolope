@@ -18,6 +18,7 @@ implementation{
   uint16_t _blocksPerRow = 0;
   uint16_t _imageWidth = 0;
   uint16_t _blockIndex = 0;
+  uint16_t _blockSizeSquared = 0;
   
   inline uint16_t available() {
     //printf("start %d end=%d end\n", _start, _end);
@@ -95,48 +96,29 @@ implementation{
     _imageWidth = imageWidth;
     _blockSize = blockSize;
     _blocksPerRow = imageWidth / _blockSize;
-    // BlockRowSize is the number of bytes required to fill a row of blocks
-    _blockRowSize = _blockSize * _blockSize * _blocksPerRow;
     _blockIndex = 0;
+    
+    // Values that are computed once but used multiple times.
+    _blockSizeSquared = _blockSize * _blockSize;
+    // BlockRowSize is the number of bytes required to fill a row of blocks 
+    _blockRowSize = _blockSizeSquared * _blocksPerRow;
   }
   
   command bool BlockReader.hasMoreBlocks(){
     uint16_t avail = available();
-    uint16_t blockSizeSquared = _blockSize * _blockSize;
-    
-    if ((_blockIndex < _blocksPerRow * _blocksPerRow) == FALSE) {
-      printf("HasMoreBlocks is false ");
-      printf("Available: %u ", avail);
-      printf("GetFreeSpace: %u \n", getFreeSpace());
-    }
-    
-    return _blockIndex < _blocksPerRow * _blocksPerRow;
+    return avail >= _blockSizeSquared;
   }
   
   command void BlockReader.readNextBlock(uint8_t * outBuffer){
     uint16_t rowOffset, blockOffset, internalBufIdx, outBufferIndex = 0;
     uint8_t i, j;
-//    bool debug = TRUE;
-    
+
     rowOffset = (_blockIndex / _blocksPerRow) * _blockRowSize;
     blockOffset = _blockIndex % _blocksPerRow;
-    //debug = _blockIndex > 6;
-//    
-//    if (debug) {
-//      printf("BlockSize: %u\n", _blockSize);
-//      printf("blocksPerRow: %u\n", _blocksPerRow);
-//      printf("BlockIndex: %u\n", _blockIndex);
-//      printf("blockOffset: %u\n", blockOffset);
-//      printf("rowOffset: %u\n", rowOffset);
-//      printfflush();
-//    }
-//    if (debug) printf("\n");
     
     for (i = 0; i < _blockSize; i++) {
       for (j = 0; j < _blockSize; j++) {
-        internalBufIdx = j + (_blockSize * blockOffset) + (_imageWidth * i) + rowOffset;
-//        if (debug) printf("%u ", internalBufIdx);
-        
+        internalBufIdx = j + (_blockSize * blockOffset) + (_imageWidth * i) + rowOffset;        
         outBuffer[outBufferIndex] = _buf[internalBufIdx];
         outBufferIndex += 1;
         
@@ -146,7 +128,6 @@ implementation{
         _start++;
         if (_start == CAPACITY) _start = 0;
       }
-//      if (debug) printf("\n");
     }
     _blockIndex += 1;
   }

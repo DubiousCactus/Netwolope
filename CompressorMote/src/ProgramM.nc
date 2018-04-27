@@ -89,11 +89,12 @@ implementation {
   
   event void Compressor.compressed(){
     printf("Sending compressed data\n");
+    printfflush();
     call RadioSender.sendPartialData();
   }
 
   event void RadioSender.sendDone(){
-    printf("Send done!\n");
+//    printf("Send done!\n");
     if (call RadioSender.canSend()) {
       call RadioSender.sendPartialData();
       
