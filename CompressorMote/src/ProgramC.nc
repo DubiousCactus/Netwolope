@@ -66,7 +66,6 @@ implementation {
 
   components NoCompressionM;
   NoCompressionM.InBuffer -> UncompressedBuffer;
-  NoCompressionM.BlockReader -> UncompressedBuffer;
   NoCompressionM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> NoCompressionM;
 
@@ -93,6 +92,15 @@ implementation {
   RossCompressionM.InBuffer -> UncompressedBuffer;
   RossCompressionM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> RossCompressionM;
+
+  #endif
+  #if COMPRESSION_BLOCK
+
+  components BlockCompressionM;
+  BlockCompressionM.InBuffer -> UncompressedBuffer;
+  BlockCompressionM.BlockReader -> UncompressedBuffer;
+  BlockCompressionM.OutBuffer -> CompressedBuffer;
+  ProgramM.Compressor -> BlockCompressionM;
 
   #endif
 }
