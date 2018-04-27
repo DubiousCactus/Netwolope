@@ -43,7 +43,7 @@ module RossCompressionM {
 		uint16_t *ctrl_idx = (uint16_t *) outbuff;
 		uint16_t ctrl_bits = 0;
 		uint16_t ctrl_cnt = 0;
-		uint8_t *out_idx = outbuff + sizeof(uint16_t);
+		uint8_t *out_idx = outbuff + 16;
 		uint8_t *outbuff_end = outbuff + (length - 48);
 
 		printf("Compressing %d bytes\n", length);
@@ -53,11 +53,20 @@ module RossCompressionM {
 			length = call InBuffer.available();
 			call InBuffer.readChunk(data, length);
 
+			/* Might need to reset the initial values (since the buffer would change here) */
+			*in_idx = data;
+			*data_end = data + length;
+			*ctrl_idx = (uint16_t *) outbuff;
+			ctrl_bits = 0;
+			ctrl_cnt = 0;
+			*out_idx = outbuff + 16;
+			*outbuff_end = outbuff + (length - 48);
+
 			/* skip the compression for a small buffer */
 			if (length <= 18) {
 				call OutBuffer.writeChunk(data, length);
 				signal OnlineCompressionAlgorithm.compressed();
-				return;
+				continue; //Skip this buffer block
 			}
 
 			/* adjust # hash entries so hash algorithm can
@@ -72,7 +81,7 @@ module RossCompressionM {
 				if (ctrl_cnt++ == 16) {
 					*ctrl_idx = ctrl_bits;
 					ctrl_cnt = 1;
-					ctrl_idx = (uint *) out_idx;
+					ctrl_idx = (uint16_t *) out_idx;
 					out_idx += 2;
 
 					if (out_idx > outbuff_end) {
@@ -120,6 +129,7 @@ module RossCompressionM {
 					pat_idx = hash_tbl[hash];
 					hash_tbl[hash] = in_idx;
 
+					/* TODO: Adjust this size since our buffer is way smaller ! */
 					/* compare characters if we're within 4098 bytes */
 					if ((gap = in_idx - pat_idx) <= 4098) {
 						while (in_idx < data_end && pat_idx < anchor && *pat_idx == *in_idx && (in_idx - anchor) < 271) {
