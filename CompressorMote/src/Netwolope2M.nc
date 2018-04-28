@@ -10,6 +10,20 @@ implementation{
   enum {
     BUFFER_SIZE = 8
   };  
+  
+  /**
+   * Attempts to divide using bit shifting when count is divisible by 2
+   */
+  inline uint16_t efficientDivision(uint16_t value, uint8_t count) {
+    if (count == 0 || count == 1)
+       return value;
+    if (count == 2)
+       return value >> 1;
+    if (count == 4)
+       return value >> 2;
+
+    return value / count;
+  }
 
   void compress(){
     uint16_t a1, b1, a2, b2;
@@ -48,10 +62,8 @@ implementation{
         }
       }
       
-      if (counterA != 0)
-        a1 = a1 / counterA;
-      if (counterA != 4)
-        b1 = b1 / (4 - counterA);
+      a1 = efficientDivision(a1, counterA);
+      b1 = efficientDivision(b1, 4-counterA);
       
       counterA = 0;
       
@@ -69,10 +81,8 @@ implementation{
         }
       }
       
-      if (counterA != 0)
-        a2 = a2 / counterA;
-      if (counterA != 4)
-        b2 = b2 / (4 - counterA);
+      a2 = efficientDivision(a2, counterA);
+      b2 = efficientDivision(b2, 4-counterA);
       
       if (debug) {
         printf("Hex: %u Mean1: %u Mean2: %u   a1=%u   b1=%u   a2=%u   b2=%u  \n", hex1, mean1, mean2, a1, b1, a2, b2);
