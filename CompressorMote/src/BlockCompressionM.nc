@@ -10,41 +10,27 @@ module BlockCompressionM {
   }
 }
 implementation {
-  uint16_t _blockNo; 
+  enum {
+    BLOCK_SIZE = 4,
+    BUFFER_SIZE = 16
+  }; 
   
   inline void sendNextBlock() {
-    uint8_t blockBuffer[16];
-    uint16_t i;
+    uint8_t blockBuffer[BUFFER_SIZE];
     
     call BlockReader.readNextBlock(blockBuffer); 
-    
-    if (_blockNo == 63 || _blockNo == 64 || _blockNo == 65) {
-      printf("Block %u\n", _blockNo);
-      for (i = 1; i < 17; i++) {
-        printf("%u ", blockBuffer[i-1]);
-        if (i%4 == 0) {
-          printf("\n");
-        }
-      }
-    }
-      
-    call OutBuffer.writeChunk(blockBuffer, 16);
-    _blockNo += 1;
+    call OutBuffer.writeChunk(blockBuffer, BUFFER_SIZE);
   }
 
   command void OnlineCompressionAlgorithm.fileBegin(uint16_t imageWidth) {
     call OutBuffer.clear();
-    call BlockReader.prepare(imageWidth, 4);
-    _blockNo = 1;
+    call BlockReader.prepare(imageWidth, BLOCK_SIZE);
   }
   
   command void OnlineCompressionAlgorithm.compress(bool last) {
-    
-    
     while (call BlockReader.hasMoreBlocks()) {
       sendNextBlock();
     }
-    
     signal OnlineCompressionAlgorithm.compressed();
   }
 
