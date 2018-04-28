@@ -10,6 +10,8 @@ implementation{
   enum {
     BLOCK_SIZE = 4,
   };
+  uint16_t _blockNo;
+  bool debug = FALSE;
   uint16_t _imageWidth;
   uint8_t compressbuffer[64];     // (encoder) converted to single bit (only 1 and 0)
   uint8_t binarybuffer[8];        // convert bytes to bits (e.g. 255 -> 11111111)
@@ -202,6 +204,17 @@ implementation{
     
     
     call InBuffer.readNextBlock(data);
+    
+    if (debug) {
+      printf("Data in Block %u: \n ", _blockNo);
+      for (i = 1; i < 17; i++) {
+        printf("%u ", data[i-1]);
+        if (i%4 == 0) {
+          printf("\n ");
+        }
+      }
+    }
+    
     /*
      * ENCODER ENCODER ENCODER ENCODER ENCODER ENCODER ENCODER
      */
@@ -243,10 +256,13 @@ implementation{
       counter++;
     }
     /* SEND ARRAY sendcompressedpackage with length p */
-    printf("[%u, ", sendcompressedpackage[0]);
-    printf("%u, ", sendcompressedpackage[1]);
-    printf("%u, ", sendcompressedpackage[2]);
-    printf("%u]\n", sendcompressedpackage[3]);
+
+    if (debug) {
+      printf(" Compressed: a=%u  ", sendcompressedpackage[0]);
+      printf("b=%u  ", sendcompressedpackage[1]);
+      printf("hex1=%u  ", sendcompressedpackage[2]);
+      printf("hex2=%u\n", sendcompressedpackage[3]);
+    }
     
     call OutBuffer.writeChunk(sendcompressedpackage, 4); // TODO: Do not use magic number
   }
@@ -254,19 +270,25 @@ implementation{
   command void Compressor.fileBegin(uint16_t imageWidth){
     _imageWidth = imageWidth;
     call InBuffer.prepare(imageWidth, BLOCK_SIZE);
+    _blockNo = 1;
   }
 
   command void Compressor.compress(bool last){
-    uint16_t blockIndex = 0;
     
-    printf("\n\nBT Start:\n", blockIndex);
+    
     while (call InBuffer.hasMoreBlocks()) {
+      debug = _blockNo < 4;
+      
+      if (debug) {
+        printf("Compressing Block No: %u\n", _blockNo);
+      }
+      
       compressNextBlock();
-      blockIndex += 1;
+      _blockNo += 1;
     }
     
-    printf("Done: %u\n", blockIndex);
     printfflush();
+    
     signal Compressor.compressed();
   }
   
