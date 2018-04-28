@@ -114,4 +114,12 @@ implementation {
   ProgramM.Compressor -> NetwolopeAlgorithmM;
 
   #endif
+  #ifdef COMPRESSION_NETWOLOPE2
+
+  components Netwolope2M;
+  Netwolope2M.InBuffer -> UncompressedBuffer;
+  Netwolope2M.OutBuffer -> CompressedBuffer;
+  ProgramM.Compressor -> Netwolope2M;
+
+  #endif
 }
