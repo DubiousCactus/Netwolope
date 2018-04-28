@@ -117,19 +117,18 @@ implementation{
     uint16_t rowOffset, blockOffset, internalBufIdx, outBufferIndex = 0;
     uint8_t i, j;
     bool debug = FALSE;
+    //debug = _blockIndex == 63 || _blockIndex == 64 || _blockIndex == 65 || _blockIndex == 66;
     
     if (available() < _blockSizeSquared) {
       // Requested size is larger than what is available.
       signal Error.error(3);
       return;
     }
-    
-    debug = _blockIndex == 63 || _blockIndex == 64 || _blockIndex == 65 || _blockIndex == 66;
 
     rowOffset = (_blockIndex / _blocksPerRow) * _blockRowSize;
     blockOffset = _blockIndex % _blocksPerRow;
     
-    if (debug == TRUE) {
+    if (debug) {
       printf("BlockIndex:  %u\n", _blockIndex);
       printf("RowOffset:   %u\n", rowOffset);
       printf("BlockOffset: %u\n", blockOffset);
@@ -141,7 +140,7 @@ implementation{
         internalBufIdx = j + (_blockSize * blockOffset) + (_imageWidth * i) + rowOffset;
         internalBufIdx = internalBufIdx % CAPACITY;
         
-        if (debug == TRUE) {
+        if (debug) {
           printf("%u, ", internalBufIdx);
         }
                
