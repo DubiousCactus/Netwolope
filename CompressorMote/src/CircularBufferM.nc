@@ -65,6 +65,7 @@ implementation{
   command void Writer.clear(){
     _start = 0;
     _end = 0;
+    _blockIndex = 0;
   }
 
   command error_t Writer.write(uint8_t byte){
@@ -138,6 +139,7 @@ implementation{
     for (i = 0; i < _blockSize; i++) {
       for (j = 0; j < _blockSize; j++) {
         internalBufIdx = j + (_blockSize * blockOffset) + (_imageWidth * i) + rowOffset;
+        internalBufIdx = internalBufIdx % CAPACITY;
         
         if (debug == TRUE) {
           printf("%u, ", internalBufIdx);
