@@ -19,8 +19,8 @@ module ProgramM {
 }
 implementation {
   uint16_t _imageWidth;
+  uint8_t ready = 0;
   uint16_t i;
-  uint8_t compressed = 0;
 
   uint8_t mock[1040] = {
     0x50, 0x35, 0x0a, 0x23, 0x2a, 0x0a, 0x33, 0x32, 0x20, 0x33, 0x32, 0x0a,
@@ -159,8 +159,9 @@ implementation {
   }
   
   event void RadioSender.fileBeginAcknowledged(){ 
-    call Compressor.fileBegin(_imageWidth);
-    call FlashReader.readNextChunk();
+    /*call Compressor.fileBegin(_imageWidth);
+    call FlashReader.readNextChunk();*/
+    ready = 1;
   }
 
   event void FlashReader.chunkRead(){
@@ -168,17 +169,18 @@ implementation {
   }
   
   event void Compressor.compressed(){
+    call RadioSender.sendPartialData();
     printf("Compression done !\n");
-    compressed = 1;
   }
 
   event void Button.notify(button_state_t state) {
-    printf("BUTTON NOTIFY\n");
-    printf("Compressed: %d\n", compressed);
-    if (state == BUTTON_PRESSED && compressed) {
-      call RadioSender.sendPartialData();
+    if (state == BUTTON_PRESSED && ready) {
+      printf("Starting compression...\n");
+      call Compressor.fileBegin(_imageWidth);
+      call FlashReader.readNextChunk();
+      ready = 0;
     }
-    printfflush();
+    /*printfflush();*/
   }
 
   event void RadioSender.sendDone(){

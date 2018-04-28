@@ -122,10 +122,11 @@ void do_decompress()
 
   for (;;)
   {
+    printf("Reading block length (from %d first bytes)\n", sizeof(int));
     if (fread(&block_len, sizeof(int), 1, infile) != 1)
         err_exit("Can't read block length.\n");
 
-    printf("Block length: %d\n", block_len);
+    printf("Block length: %d (%02X)\n", block_len, block_len);
 
     /* check for end-of-file flag */
     if (block_len == 0)
