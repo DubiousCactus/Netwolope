@@ -107,7 +107,7 @@ implementation{
             res = (double)(data[i]/16);
             res = res < 15 && res > 0.5? (uint8_t)(res+0.5): res;
             toBitArray((uint8_t)(res),outB,4); //LOOK AT THIS FLOAT IT DOES NOT WORK
-            outB = outB < 15 && outB > 0? (uint8_t)(outB-0.5f): outB;
+//            outB = outB < 15 && outB > 0? (uint8_t)(outB-0.5f): outB;
             PrintArray(outB, 4);
             ConcatenateArrays(outA,outB,outC);
             PrintArray(outC, 8);

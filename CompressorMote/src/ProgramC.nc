@@ -106,4 +106,12 @@ implementation {
   ProgramM.Compressor -> BlockCompressionM;
 
   #endif
+  #ifdef COMPRESSION_NETWOLOPE
+
+  components NetwolopeAlgorithmM;
+  NetwolopeAlgorithmM.InBuffer -> UncompressedBuffer;
+  NetwolopeAlgorithmM.OutBuffer -> CompressedBuffer;
+  ProgramM.Compressor -> NetwolopeAlgorithmM;
+
+  #endif
 }
