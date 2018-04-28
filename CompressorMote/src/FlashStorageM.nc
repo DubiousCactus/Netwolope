@@ -112,6 +112,7 @@ implementation {
   }
   
   command void FlashReader.readNextChunk(){
+    printf("FR.readNextChunk: %u\n", call WriteBuffer.getFreeSpace());
     if (_index < _endIndex) {
       post readTask();
       return;

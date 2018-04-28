@@ -51,6 +51,8 @@ implementation {
   
   ProgramM.Boot -> MainC;
   ProgramM.Leds -> LedsC;
+  ProgramM.ButtonNotify -> UserButtonC;
+  
   ProgramM.RadioSender -> RadioSenderM;
   ProgramM.PCFileReceiver -> PCFileReceiverM;
   ProgramM.ErrorIndicator -> ErrorIndicatorM;
@@ -59,7 +61,8 @@ implementation {
   ProgramM.FlashError -> FlashStorageM;
   ProgramM.UncompressedBufferReader -> UncompressedBuffer;
   ProgramM.UncompressedBufferWriter -> UncompressedBuffer;
-  ProgramM.ButtonNotify -> UserButtonC;
+  ProgramM.UncompressedBufferError -> UncompressedBuffer.Error;
+  ProgramM.CompressedBufferError -> CompressedBuffer.Error;
   
   
   #ifdef COMPRESSION_NONE

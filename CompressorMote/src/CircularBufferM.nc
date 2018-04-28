@@ -5,7 +5,7 @@ generic module CircularBufferM(uint16_t CAPACITY) {
     interface CircularBufferReader as Reader;
     interface CircularBufferWriter as Writer;
     interface CircularBufferBlockReader as BlockReader;
-    interface FlashError as FlashError;
+    interface CircularBufferError as Error;
   }
 }
 implementation{
@@ -21,7 +21,6 @@ implementation{
   uint16_t _blockSizeSquared = 0;
   
   inline uint16_t available() {
-    //printf("start %d end=%d end\n", _start, _end);
     if (_start <= _end)
       return _end - _start;
     else
@@ -38,6 +37,7 @@ implementation{
   
   command error_t Reader.read(uint8_t *byte){
     if (_start == _end) {
+      signal Error.error(3);
       // Nothing in the buffer
       return FAIL;
     } else {
@@ -51,6 +51,7 @@ implementation{
   command error_t Reader.readChunk(uint8_t *buffer, uint16_t size){
     static uint16_t i;
     if (available() < size) {
+      signal Error.error(3);
       // Requested size is larger than what is available.
       return FAIL;
     }
@@ -68,6 +69,7 @@ implementation{
 
   command error_t Writer.write(uint8_t byte){
     if (_end + 1 == _start || (_start == 0 && _end + 1 == CAPACITY)) {
+      signal Error.error(4);
       return FAIL;
     }
     _buf[_end] = byte;
@@ -79,6 +81,7 @@ implementation{
   command error_t Writer.writeChunk(uint8_t *buffer, uint16_t size){
     static uint16_t i;
     if (getFreeSpace() < size) {
+      signal Error.error(4);
       return FAIL;
     }
     for (i = 0; i < size; i++) {
@@ -112,13 +115,34 @@ implementation{
   command void BlockReader.readNextBlock(uint8_t * outBuffer){
     uint16_t rowOffset, blockOffset, internalBufIdx, outBufferIndex = 0;
     uint8_t i, j;
+    bool debug = FALSE;
+    
+    if (available() < _blockSizeSquared) {
+      // Requested size is larger than what is available.
+      signal Error.error(3);
+      return;
+    }
+    
+    debug = _blockIndex == 63 || _blockIndex == 64 || _blockIndex == 65 || _blockIndex == 66;
 
     rowOffset = (_blockIndex / _blocksPerRow) * _blockRowSize;
     blockOffset = _blockIndex % _blocksPerRow;
     
+    if (debug == TRUE) {
+      printf("BlockIndex:  %u\n", _blockIndex);
+      printf("RowOffset:   %u\n", rowOffset);
+      printf("BlockOffset: %u\n", blockOffset);
+      printf("Indices:     [");
+    }
+    
     for (i = 0; i < _blockSize; i++) {
       for (j = 0; j < _blockSize; j++) {
-        internalBufIdx = j + (_blockSize * blockOffset) + (_imageWidth * i) + rowOffset;        
+        internalBufIdx = j + (_blockSize * blockOffset) + (_imageWidth * i) + rowOffset;
+        
+        if (debug == TRUE) {
+          printf("%u, ", internalBufIdx);
+        }
+               
         outBuffer[outBufferIndex] = _buf[internalBufIdx];
         outBufferIndex += 1;
         
@@ -129,6 +153,11 @@ implementation{
         if (_start == CAPACITY) _start = 0;
       }
     }
+    
+    if (debug == TRUE) {
+      printf("]\n", internalBufIdx);
+    }
+    
     _blockIndex += 1;
   }
 }

@@ -15,10 +15,13 @@ module ProgramM {
     interface CircularBufferReader as UncompressedBufferReader;
     interface CircularBufferWriter as UncompressedBufferWriter;
     interface Notify<button_state_t> as ButtonNotify;
+    interface CircularBufferError as UncompressedBufferError;
+    interface CircularBufferError as CompressedBufferError;
   }
 }
 implementation {
   uint16_t _imageWidth;
+  uint16_t _sendDoneCounter = 0;
   
   event void ButtonNotify.notify(button_state_t state){
     if ( state == BUTTON_PRESSED ) {
@@ -36,7 +39,6 @@ implementation {
   }
   
   event void PCFileReceiver.initDone(){ 
-     call Leds.set(0);
      call Leds.led1On();
   }
   
@@ -83,7 +85,6 @@ implementation {
 
   event void FlashReader.chunkRead(){
     bool isFinished = call FlashReader.isFinished();
-    printf("Flash finished %u\n\n", isFinished);
     call Compressor.compress(isFinished);
   }
   
@@ -94,15 +95,18 @@ implementation {
   }
 
   event void RadioSender.sendDone(){
-//    printf("Send done!\n");
     if (call RadioSender.canSend()) {
+      _sendDoneCounter += 1;
       call RadioSender.sendPartialData();
       
     } else if (call FlashReader.isFinished()) {
+      printf("Sending EOF to SinkMote!\n");
+      printfflush();
       call RadioSender.sendEOF();
       call Leds.led2On();
       
     } else {
+      _sendDoneCounter = 0;
       call FlashReader.readNextChunk();
       call Leds.led1Toggle();
     }
@@ -122,5 +126,13 @@ implementation {
 
   event void Compressor.error(CompressionError error){
     call ErrorIndicator.blinkRed(3);
+  }
+
+  event void UncompressedBufferError.error(uint8_t code){
+    call ErrorIndicator.blinkRed(code);
+  }
+
+  event void CompressedBufferError.error(uint8_t code){
+    call ErrorIndicator.blinkRed(code);
   }
 }
