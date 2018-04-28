@@ -26,6 +26,7 @@ implementation{
       ans = ans * A;
       i++;
     }
+    
     return ans;
   }
   int ABS(int N) { return ((N<0)?(-N):(N)); }
@@ -197,10 +198,11 @@ implementation{
     uint8_t data[BLOCK_SIZE * BLOCK_SIZE]; // Data of size 16
     uint8_t i,counter=1,inds=0,p;
     uint8_t q=0;
+    uint16_t m=0;
     uint8_t sendcompressedpackage[2+BLOCK_SIZE]; // TODO: Is it correct?
     uint8_t bits[8] = {1,1,1,1,1,1,1,1};
 //    uint8_t testbuffer[5] = {1,2,3,4,5};
-    float sd,a,b,mean;
+    double sd,a,b,mean;
     
     
     call InBuffer.readNextBlock(data);
@@ -229,9 +231,13 @@ implementation{
         q++;
       }
     }
+    
+    //m = length-q;
+    m = 16;
+    
     /* Reconstruction values a and b */   
-    a = mean - sd*SquareRoot((float)q/(float)(length-q));
-    b = mean + sd*SquareRoot((float)(length-q)/(float)q);    
+    a = mean - sd*SquareRoot((float)q/(float)(m));
+    b = mean + sd*SquareRoot((float)(m)/(float)q);    
 
     /* convert data array to 1's and 0's */
     EncoderConvertToSingleBit(data,length,mean);
@@ -258,7 +264,11 @@ implementation{
     /* SEND ARRAY sendcompressedpackage with length p */
 
     if (debug) {
-      printf(" Compressed: a=%u  ", sendcompressedpackage[0]);
+      printf("mean=%u  ", (uint16_t)mean);
+      printf("stdev=%u  ", (uint16_t)sd);
+      printf("q=%u  ", q);
+      printf("m=%u  ", m);
+      printf("a=%u  ", sendcompressedpackage[0]);
       printf("b=%u  ", sendcompressedpackage[1]);
       printf("hex1=%u  ", sendcompressedpackage[2]);
       printf("hex2=%u\n", sendcompressedpackage[3]);
