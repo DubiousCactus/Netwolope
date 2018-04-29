@@ -24,6 +24,7 @@ enum {
 
 typedef enum {
   IDLE,
+  READY,
   BEGIN_TRANSFER,
   SENDING_CHUNK,
   RECOVERY,

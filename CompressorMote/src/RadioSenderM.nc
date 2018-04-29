@@ -9,9 +9,10 @@ module RadioSenderM {
   uses interface Receive as RadioReceive[am_id_t msg_type];
   uses interface SplitControl as RadioControl;
   uses interface CircularBufferReader as Reader;
-}
-implementation {
-  State _state = IDLE;
+
+} implementation {
+
+ State _state = IDLE;
   RadioSenderError _error;
   message_t packet;
   BeginFileMsg *beginFileMsg = (BeginFileMsg *) call Packet.getPayload(&packet, sizeof(BeginFileMsg));
@@ -23,6 +24,11 @@ implementation {
           /* Do nothing */
           printf("IDLE\n");
           break;
+        case READY:
+          printf("READY\n");
+          /* TODO: Use the state machine if this event isn't actually needed */
+          signal RadioSender.initDone();
+          break;
         case BEGIN_TRANSFER:
           printf("BEGIN_TRANSFER\n");
 
@@ -33,33 +39,27 @@ implementation {
           break;
         case SENDING_CHUNK:
           printf("SENDING_CHUNK\n");
-          uint8_t transferSize = 0;
-          uint16_t availableBytes = 0;
-          PartialDataMsg* msg;
+          PartialDataMsg *msg;
+          uint16_t availableBytes = call Reader.available();
+          uint8_t transferSize = availableBytes;
 
-          if (currentState != STATE_READY) {
-            return;
-          }
-
-          availableBytes = call Reader.available();
           if (availableBytes > 0) {
             if (availableBytes > PACKET_CAPACITY) {
               transferSize = PACKET_CAPACITY;
-            } else {
-              transferSize = availableBytes;
             }
 
-            msg = (PartialDataMsg*)(call Packet.getPayload(&pkt, sizeof(PartialDataMsg)));
-            if (call Reader.readChunk((uint8_t*)msg->data, (uint16_t)transferSize) != SUCCESS) {
-              signal RadioSender.error(RS_ERR_PROGRAMMER);
-              return;
+            msg = (PartialDataMsg *) call Packet.getPayload(&packet, sizeof(PartialDataMsg));
+            if (call Reader.readChunk((uint8_t *) msg->data, (uint16_t) transferSize) != SUCCESS) {
+              _error = RS_ERR_PROGRAMMER;
+              changeState(ERROR);
             }
 
-            currentState = STATE_SENDING_PARTIAL_DATA;
-            if (call RadioSend.send[AM_MSG_PARTIAL_DATA](AM_BROADCAST_ADDR, &pkt, transferSize) != SUCCESS) {
-              signal RadioSender.error(RS_ERR_SEND_FAILED);
+            if (call RadioSend.send[AM_MSG_PARTIAL_DATA](AM_BROADCAST_ADDR, &packet, transferSize) != SUCCESS) {
+              _error = RS_ERR_SEND_FAILED;
+              changeState(ERROR);
             }
           } else {
+            /* TODO: Use the state machine */
             signal RadioSender.sendDone();
           }
           break;
@@ -68,9 +68,17 @@ implementation {
           break;
         case END_OF_CHUNK:
           printf("END_OF_CHUNK\n");
+          if (call RadioSend.send[AM_MSG_END_OF_CHUNK](AM_BROADCAST_ADDR, &packet, 0) != SUCCESS) {
+            _error = RS_ERR_SEND_FAILED;
+            changeState(ERROR);
+          }
           break;
         case END_OF_FILE:
           printf("END_OF_FILE\n");
+          if (call RadioSend.send[AM_MSG_EOF](AM_BROADCAST_ADDR, &packet, 0) != SUCCESS) {
+            _error = RS_ERR_SEND_FAILED;
+            changeState(ERROR);
+          }
           break;
         case ERROR:
           printf("ERROR\n");
@@ -84,39 +92,24 @@ implementation {
     bool invalid = FALSE;
     switch (newState) {
       case IDLE:
-        if (_state != ERROR) {
-          invalid = TRUE;
-        }
+        invalid = (_state != ERROR);
         break;
+      case READY:
+        invalid = (_state != IDLE);
       case BEGIN_TRANSFER:
-        if (_state != IDLE) {
-          invalid = TRUE;
-        }
+        invalid = (_state != READY);
         break;
       case SENDING_CHUNK:
-        if (_state != BEGIN_TRANSFER && _state != END_OF_CHUNK && _state != RECOVERY) {
-          invalid = TRUE;
-        }
+        invalid = (_state != BEGIN_TRANSFER && _state != END_OF_CHUNK && _state != RECOVERY);
         break;
       case RECOVERY:
-        if (_state != SENDING_CHUNK && _state != END_OF_CHUNK) {
-          invalid = TRUE;
-        }
+        invalid = (_state != SENDING_CHUNK && _state != END_OF_CHUNK);
         break;
       case END_OF_CHUNK:
-        if (_state != SENDING_CHUNK) {
-          invalid = TRUE;
-        }
+        invalid = (_state != SENDING_CHUNK);
         break;
       case END_OF_FILE:
-        if (_state != SENDING_CHUNK) {
-          invalid = TRUE;
-        }
-        break;
-      case ERROR:
-        if (_state != BEGIN_TRANSFER && _state != END_OF_FILE && _state != RECOVERY) {
-          invalid = TRUE;
-        }
+        invalid = (_state != SENDING_CHUNK);
     }
 
     if (invalid) {
@@ -126,7 +119,7 @@ implementation {
 
     _state = newState;
     post protocolIteration();
-}
+  }
 
   command void RadioSender.init() {
     if (_state == IDLE) {
@@ -152,59 +145,24 @@ implementation {
   }
 
   command void RadioSender.sendPartialData() {
-    /*uint8_t transferSize = 0;
-    uint16_t availableBytes = 0;
-    PartialDataMsg* msg;
-
-    if (currentState != STATE_READY) {
-      signal RadioSender.error(RS_ERR_INVALID_STATE);
-      return;
-    }
-
-    availableBytes = call Reader.available();
-    if (availableBytes > 0) {
-      if (availableBytes > PACKET_CAPACITY) {
-        transferSize = PACKET_CAPACITY;
-      } else {
-        transferSize = availableBytes;
-      }
-
-      msg = (PartialDataMsg*)(call Packet.getPayload(&pkt, sizeof(PartialDataMsg)));
-      if (call Reader.readChunk((uint8_t*)msg->data, (uint16_t)transferSize) != SUCCESS) {
-        signal RadioSender.error(RS_ERR_PROGRAMMER);
-        return;
-      }
-
-      currentState = STATE_SENDING_PARTIAL_DATA;
-      if (call RadioSend.send[AM_MSG_PARTIAL_DATA](AM_BROADCAST_ADDR, &pkt, transferSize) != SUCCESS) {
-        signal RadioSender.error(RS_ERR_SEND_FAILED);
-      }
+    if (_state != SENDING_CHUNK) {
+      changeState(SENDING_CHUNK);
     } else {
-      signal RadioSender.sendDone();
-    }*/
+      post protocolIteration();
+    }
   }
 
   command void RadioSender.sendEOF() {
-    /*atomic {
-      if (currentState != STATE_READY) {
-        signal RadioSender.error(RS_ERR_INVALID_STATE);
-        return;
-      }
-
-      currentState = STATE_SENDING_EOF;
-      if (call RadioSend.send[AM_MSG_EOF](AM_BROADCAST_ADDR, &pkt, 0) != SUCCESS) {
-        signal RadioSender.error(RS_ERR_SEND_FAILED);
-      }
-    }*/
+    changeState(END_OF_FILE);
   }
 
-  event void RadioControl.startDone(error_t error){
-    /*if (error == SUCCESS) {
-      currentState = STATE_READY;
-      signal RadioSender.initDone();
-    } else {
-      signal RadioSender.error(RS_ERR_INIT_FAILED);
-    }*/
+  event void RadioControl.startDone(error_t error) {
+    if (error != SUCCESS) {
+      _error = RS_ERR_INIT_FAILED;
+      changeState(ERROR);
+    }
+
+    changeState(READY);
   }
 
   event void RadioControl.stopDone(error_t error){
@@ -230,9 +188,20 @@ implementation {
     }*/
   }
 
-  event message_t * RadioReceive.receive[am_id_t msg_type](message_t *msg, void *payload, uint8_t len) {
-    /*atomic {
-      if (currentState == STATE_WAITING_PARTIAL_DATA_ACK) {
+  event message_t* RadioReceive.receive[am_id_t msg_type](message_t *msg, void *payload, uint8_t len) {
+    atomic {
+      if (_state == BEGIN_TRANSFER && msg_type == AM_MSG_ACK_BEGIN_FILE) {
+        changeState(SENDING_CHUNK); //TODO: We might not want to run this iteration...
+      } else if (_state == END_OF_CHUNK && msg_type == AM_MSG_ACK_END_OF_CHUNK) {
+        changeState(SENDING_CHUNK); //TODO: We might not want to run this iteration...
+      } else if (_state == SENDING_CHUNK && msg_type == AM_MSG_NACK_PARTIAL_DATA) {
+        _recoverSeq = (uint16_t) payload; //TODO: Check this (just a random guess at midnight...)
+        changeState(RECOVERY);
+      } else {
+        _error = RS_ERR_INVALID_STATE;
+        changeState(ERROR);
+      }
+      /*if (currentState == STATE_WAITING_PARTIAL_DATA_ACK) {
         if (msg_type == AM_MSG_ACK_PARTIAL_DATA) {
           currentState = STATE_READY;
           signal RadioSender.sendDone();
@@ -246,8 +215,8 @@ implementation {
         signal RadioSender.fileBeginAcknowledged();
       } else {
         signal RadioSender.error(RS_ERR_INVALID_STATE);
-      }
+      }*/
     }
-    return msg;*/
+    return msg;
   }
 }
