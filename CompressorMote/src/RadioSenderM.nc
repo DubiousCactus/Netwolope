@@ -11,43 +11,6 @@ module RadioSenderM {
   uses interface CircularBufferReader as Reader;
 }
 implementation {
-  enum {
-    AM_MSG_BEGIN_FILE         = 20,
-    AM_MSG_ACK_BEGIN_FILE     = 21,
-    AM_MSG_PARTIAL_DATA       = 22,
-    AM_MSG_NACK_PARTIAL_DATA  = 23,
-    AM_MSG_END_OF_CHUNK       = 24,
-    AM_MSG_ACK_END_OF_CHUNK   = 25,
-    AM_MSG_EOF                = 26,
-    AM_MSG_ACK_EOF            = 27,
-
-    BUFFER_CAPACITY = 128,
-    PACKET_CAPACITY = 64
-  };
-
-  typedef enum {
-    IDLE,
-    BEGIN_TRANSFER,
-    SENDING_CHUNK,
-    RECOVERY,
-    END_OF_CHUNK,
-    END_OF_FILE,
-    ERROR
-  } State;
-
-  typedef nx_struct {
-    nx_uint32_t uncompressedSize;
-    nx_uint8_t compressionType;
-  } BeginFileMsg;
-
-  typedef nx_struct {
-    nx_uint32_t length;
-  } AckMsg;
-
-  typedef nx_struct {
-    nx_uint8_t data[PACKET_CAPACITY];
-  } PartialDataMsg;
-
   State _state = IDLE;
   RadioSenderError _error;
   message_t packet;
@@ -70,6 +33,35 @@ implementation {
           break;
         case SENDING_CHUNK:
           printf("SENDING_CHUNK\n");
+          uint8_t transferSize = 0;
+          uint16_t availableBytes = 0;
+          PartialDataMsg* msg;
+
+          if (currentState != STATE_READY) {
+            return;
+          }
+
+          availableBytes = call Reader.available();
+          if (availableBytes > 0) {
+            if (availableBytes > PACKET_CAPACITY) {
+              transferSize = PACKET_CAPACITY;
+            } else {
+              transferSize = availableBytes;
+            }
+
+            msg = (PartialDataMsg*)(call Packet.getPayload(&pkt, sizeof(PartialDataMsg)));
+            if (call Reader.readChunk((uint8_t*)msg->data, (uint16_t)transferSize) != SUCCESS) {
+              signal RadioSender.error(RS_ERR_PROGRAMMER);
+              return;
+            }
+
+            currentState = STATE_SENDING_PARTIAL_DATA;
+            if (call RadioSend.send[AM_MSG_PARTIAL_DATA](AM_BROADCAST_ADDR, &pkt, transferSize) != SUCCESS) {
+              signal RadioSender.error(RS_ERR_SEND_FAILED);
+            }
+          } else {
+            signal RadioSender.sendDone();
+          }
           break;
         case RECOVERY:
           printf("RECOVERY\n");
@@ -89,27 +81,47 @@ implementation {
 
   /* Switch to new state and run next protocol iteration if the current state allows it */
   void changeState(State newState) {
+    bool invalid = FALSE;
     switch (newState) {
       case IDLE:
-        if (_state != ERROR) return;
+        if (_state != ERROR) {
+          invalid = TRUE;
+        }
         break;
       case BEGIN_TRANSFER:
-        if (_state != IDLE) return;
+        if (_state != IDLE) {
+          invalid = TRUE;
+        }
         break;
       case SENDING_CHUNK:
-        if (_state != BEGIN_TRANSFER && _state != END_OF_CHUNK && _state != RECOVERY) return;
+        if (_state != BEGIN_TRANSFER && _state != END_OF_CHUNK && _state != RECOVERY) {
+          invalid = TRUE;
+        }
         break;
       case RECOVERY:
-        if (_state != SENDING_CHUNK && _state != END_OF_CHUNK) return;
+        if (_state != SENDING_CHUNK && _state != END_OF_CHUNK) {
+          invalid = TRUE;
+        }
         break;
       case END_OF_CHUNK:
-        if (_state != SENDING_CHUNK) return;
+        if (_state != SENDING_CHUNK) {
+          invalid = TRUE;
+        }
         break;
       case END_OF_FILE:
-        if (_state != SENDING_CHUNK) return;
+        if (_state != SENDING_CHUNK) {
+          invalid = TRUE;
+        }
         break;
       case ERROR:
-        if (_state != BEGIN_TRANSFER && _state != END_OF_FILE && _state != RECOVERY) return;
+        if (_state != BEGIN_TRANSFER && _state != END_OF_FILE && _state != RECOVERY) {
+          invalid = TRUE;
+        }
+    }
+
+    if (invalid) {
+      signal RadioSenderError.error(RS_ERR_INVALID_STATE);
+      return;
     }
 
     _state = newState;
