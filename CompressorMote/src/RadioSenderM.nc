@@ -1,8 +1,8 @@
 #include "RadioSender.h"
 
-module RadioSenderM{
+module RadioSenderM {
   provides interface RadioSender;
-  
+
   uses interface Packet;
   uses interface AMPacket;
   uses interface AMSend as RadioSend[am_id_t msg_type];
@@ -10,80 +10,145 @@ module RadioSenderM{
   uses interface SplitControl as RadioControl;
   uses interface CircularBufferReader as Reader;
 }
-implementation{
+implementation {
   enum {
     AM_MSG_BEGIN_FILE         = 20,
     AM_MSG_ACK_BEGIN_FILE     = 21,
     AM_MSG_PARTIAL_DATA       = 22,
-    AM_MSG_ACK_PARTIAL_DATA   = 23,
-    AM_MSG_EOF                = 24,
-    AM_MSG_ACK_EOF            = 25,
-    
+    AM_MSG_NACK_PARTIAL_DATA  = 23,
+    AM_MSG_END_OF_CHUNK       = 24,
+    AM_MSG_ACK_END_OF_CHUNK   = 25,
+    AM_MSG_EOF                = 26,
+    AM_MSG_ACK_EOF            = 27,
+
     BUFFER_CAPACITY = 128,
     PACKET_CAPACITY = 64
   };
-  
+
   typedef enum {
-    STATE_NOT_READY = 2,
-    STATE_READY,
-    STATE_SENDING_BEGIN_FILE,
-    STATE_SENDING_PARTIAL_DATA,
-    STATE_SENDING_EOF,
-    STATE_WAITING_PARTIAL_DATA_ACK,
-    STATE_WAITING_EOF_ACK,
-    STATE_WAITING_BEGIN_FILE_ACK
+    IDLE,
+    BEGIN_TRANSFER,
+    SENDING_CHUNK,
+    RECOVERY,
+    END_OF_CHUNK,
+    END_OF_FILE,
+    ERROR
   } State;
-  
-  State currentState = STATE_NOT_READY;
-  
+
   typedef nx_struct {
     nx_uint32_t uncompressedSize;
     nx_uint8_t compressionType;
   } BeginFileMsg;
-  
+
   typedef nx_struct {
     nx_uint32_t length;
   } AckMsg;
-  
+
   typedef nx_struct {
     nx_uint8_t data[PACKET_CAPACITY];
   } PartialDataMsg;
-  
-  message_t pkt;
 
+  State _state = IDLE;
+  RadioSenderError _error;
+  message_t packet;
+  BeginFileMsg *beginFileMsg = (BeginFileMsg *) call Packet.getPayload(&packet, sizeof(BeginFileMsg));
 
-  command void RadioSender.init(){
-    call RadioControl.start();
+  /* Runs through the state machine to execute the appropriate actions */
+  task void protocolIteration() {
+      switch (_state) {
+        case IDLE:
+          /* Do nothing */
+          printf("IDLE\n");
+          break;
+        case BEGIN_TRANSFER:
+          printf("BEGIN_TRANSFER\n");
+
+          if (call RadioSend.send[AM_MSG_BEGIN_FILE](AM_BROADCAST_ADDR, &packet, sizeof(BeginFileMsg)) != SUCCESS) {
+            _error = RS_ERR_SEND_FAILED;
+            changeState(ERROR);
+          }
+          break;
+        case SENDING_CHUNK:
+          printf("SENDING_CHUNK\n");
+          break;
+        case RECOVERY:
+          printf("RECOVERY\n");
+          break;
+        case END_OF_CHUNK:
+          printf("END_OF_CHUNK\n");
+          break;
+        case END_OF_FILE:
+          printf("END_OF_FILE\n");
+          break;
+        case ERROR:
+          printf("ERROR\n");
+          signal RadioSender.error(_error);
+          changeState(IDLE);
+      }
   }
 
-  command void RadioSender.sendFileBegin(uint32_t uncompressedSize, uint8_t compressionType){
-    BeginFileMsg* msg = (BeginFileMsg*)(call Packet.getPayload(&pkt, sizeof(BeginFileMsg)));
-    msg->uncompressedSize = uncompressedSize;
-    msg->compressionType = compressionType;
-    currentState = STATE_SENDING_BEGIN_FILE;
-    if (call RadioSend.send[AM_MSG_BEGIN_FILE](AM_BROADCAST_ADDR, &pkt, sizeof(BeginFileMsg)) != SUCCESS) {
-      signal RadioSender.error(RS_ERR_SEND_FAILED);
+  /* Switch to new state and run next protocol iteration if the current state allows it */
+  void changeState(State newState) {
+    switch (newState) {
+      case IDLE:
+        if (_state != ERROR) return;
+        break;
+      case BEGIN_TRANSFER:
+        if (_state != IDLE) return;
+        break;
+      case SENDING_CHUNK:
+        if (_state != BEGIN_TRANSFER && _state != END_OF_CHUNK && _state != RECOVERY) return;
+        break;
+      case RECOVERY:
+        if (_state != SENDING_CHUNK && _state != END_OF_CHUNK) return;
+        break;
+      case END_OF_CHUNK:
+        if (_state != SENDING_CHUNK) return;
+        break;
+      case END_OF_FILE:
+        if (_state != SENDING_CHUNK) return;
+        break;
+      case ERROR:
+        if (_state != BEGIN_TRANSFER && _state != END_OF_FILE && _state != RECOVERY) return;
+    }
+
+    _state = newState;
+    post protocolIteration();
+}
+
+  command void RadioSender.init() {
+    if (_state == IDLE) {
+      call RadioControl.start();
     }
   }
 
-  command bool RadioSender.canSend(){
+  command void RadioSender.sendFileBegin(uint32_t uncompressedSize, uint8_t compressionType) {
+    beginFileMsg->uncompressedSize = uncompressedSize;
+    beginFileMsg->compressionType = compressionType;
+
+    if (_state == IDLE) {
+      changeState(BEGIN_TRANSFER);
+    }
+  }
+
+  command bool RadioSender.canSend() {
     return (call Reader.available() > 0);
   }
 
-  command bool RadioSender.canSendFullPacket(){
+  command bool RadioSender.canSendFullPacket() {
     return (call Reader.available() >= PACKET_CAPACITY);
   }
 
-  command void RadioSender.sendPartialData(){
-    uint8_t transferSize = 0;
+  command void RadioSender.sendPartialData() {
+    /*uint8_t transferSize = 0;
     uint16_t availableBytes = 0;
     PartialDataMsg* msg;
-    
+
     if (currentState != STATE_READY) {
       signal RadioSender.error(RS_ERR_INVALID_STATE);
       return;
     }
-    
+
     availableBytes = call Reader.available();
     if (availableBytes > 0) {
       if (availableBytes > PACKET_CAPACITY) {
@@ -91,55 +156,55 @@ implementation{
       } else {
         transferSize = availableBytes;
       }
-      
+
       msg = (PartialDataMsg*)(call Packet.getPayload(&pkt, sizeof(PartialDataMsg)));
       if (call Reader.readChunk((uint8_t*)msg->data, (uint16_t)transferSize) != SUCCESS) {
         signal RadioSender.error(RS_ERR_PROGRAMMER);
         return;
       }
-      
+
       currentState = STATE_SENDING_PARTIAL_DATA;
       if (call RadioSend.send[AM_MSG_PARTIAL_DATA](AM_BROADCAST_ADDR, &pkt, transferSize) != SUCCESS) {
         signal RadioSender.error(RS_ERR_SEND_FAILED);
       }
     } else {
       signal RadioSender.sendDone();
-    }
+    }*/
   }
 
-  command void RadioSender.sendEOF(){
-    atomic {
+  command void RadioSender.sendEOF() {
+    /*atomic {
       if (currentState != STATE_READY) {
         signal RadioSender.error(RS_ERR_INVALID_STATE);
         return;
       }
-      
+
       currentState = STATE_SENDING_EOF;
       if (call RadioSend.send[AM_MSG_EOF](AM_BROADCAST_ADDR, &pkt, 0) != SUCCESS) {
         signal RadioSender.error(RS_ERR_SEND_FAILED);
       }
-    }
+    }*/
   }
-  
+
   event void RadioControl.startDone(error_t error){
-    if (error == SUCCESS) {
+    /*if (error == SUCCESS) {
       currentState = STATE_READY;
       signal RadioSender.initDone();
     } else {
       signal RadioSender.error(RS_ERR_INIT_FAILED);
-    }
+    }*/
   }
 
   event void RadioControl.stopDone(error_t error){
     // TODO Auto-generated method stub
   }
 
-  event void RadioSend.sendDone[am_id_t msg_type](message_t *msg, error_t error){
-    if (error != SUCCESS) {
+  event void RadioSend.sendDone[am_id_t msg_type](message_t *msg, error_t error) {
+    /*if (error != SUCCESS) {
       signal RadioSender.error(RS_ERR_SEND_FAILED);
       return;
     }
-    
+
     atomic {
       if (currentState == STATE_SENDING_PARTIAL_DATA) {
         currentState = STATE_WAITING_PARTIAL_DATA_ACK;
@@ -150,11 +215,11 @@ implementation{
       } else {
         signal RadioSender.error(RS_ERR_INVALID_STATE);
       }
-    }
+    }*/
   }
 
-  event message_t * RadioReceive.receive[am_id_t msg_type](message_t *msg, void *payload, uint8_t len){
-    atomic {
+  event message_t * RadioReceive.receive[am_id_t msg_type](message_t *msg, void *payload, uint8_t len) {
+    /*atomic {
       if (currentState == STATE_WAITING_PARTIAL_DATA_ACK) {
         if (msg_type == AM_MSG_ACK_PARTIAL_DATA) {
           currentState = STATE_READY;
@@ -171,6 +236,6 @@ implementation{
         signal RadioSender.error(RS_ERR_INVALID_STATE);
       }
     }
-    return msg;
+    return msg;*/
   }
 }
