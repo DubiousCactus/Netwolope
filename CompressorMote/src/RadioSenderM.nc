@@ -12,7 +12,8 @@ module RadioSenderM {
 
 } implementation {
 
- State _state = IDLE;
+  State _state = IDLE;
+  SubState _subState;
   RadioSenderError _error;
   message_t packet;
   BeginFileMsg *beginFileMsg = (BeginFileMsg *) call Packet.getPayload(&packet, sizeof(BeginFileMsg));
@@ -36,6 +37,8 @@ module RadioSenderM {
             _error = RS_ERR_SEND_FAILED;
             changeState(ERROR);
           }
+          
+          changeSubState(WAITING);
           break;
         case SENDING_CHUNK:
           printf("SENDING_CHUNK\n");
@@ -65,6 +68,21 @@ module RadioSenderM {
           break;
         case RECOVERY:
           printf("RECOVERY\n");
+          /* Recover the requested packet */
+          //PSEUDO CODE:
+          packet = null;
+          for (i = 0; i < sizeof(recoveryBuffer); i++)
+            if (i == (currentSeq - _recoverSeq) //something like that but it's a stupid guess
+              packet = recoveryBuffer[i];
+
+          msg = (PartialDataMsg *) call Packet.getPayload(&packet, sizeof(PartialDataMsg));
+          if (call RadioSenderError.send[AM_MSG_RECOVERY](AM_BROADCAST_ADDR, &packet, transferSize) != SUCCESS) {
+            _error = RS_ERR_SEND_FAILED;
+            changeState(ERROR);
+          }
+
+          //TODO: Use another state to wait for the ACK ?
+          changeSubState(WAITING);
           break;
         case END_OF_CHUNK:
           printf("END_OF_CHUNK\n");
@@ -72,6 +90,9 @@ module RadioSenderM {
             _error = RS_ERR_SEND_FAILED;
             changeState(ERROR);
           }
+
+          //TODO: Use another state to wait for AM_MSG_ACK_END_OF_CHUNK ?
+          changeSubState(WAITING);
           break;
         case END_OF_FILE:
           printf("END_OF_FILE\n");
@@ -79,6 +100,7 @@ module RadioSenderM {
             _error = RS_ERR_SEND_FAILED;
             changeState(ERROR);
           }
+          changeSubState(WAITING);
           break;
         case ERROR:
           printf("ERROR\n");
@@ -121,6 +143,25 @@ module RadioSenderM {
     post protocolIteration();
   }
 
+  void changeSubState(SubState newState) {
+    bool invalid = FALSE;
+    switch (newState) {
+      case SENDING:
+        invalid = (_state != BEGIN_TRANSFER && _state != RECOVERY && _state != END_OF_CHUNK && _state != END_OF_FILE && _subState != WAITING);
+        break;
+      case WAITING:
+        invalid = (_state != BEGIN_TRANSFER && _state != RECOVERY && _state != END_OF_CHUNK && _state != END_OF_FILE && _subState != SENDING);
+    }
+
+    if (invalid) {
+      signal RadioSenderError.error(RS_ERR_INVALID_STATE);
+      return;
+    }
+
+    _subState = newState;
+    post protocolIteration();
+  }
+
   command void RadioSender.init() {
     if (_state == IDLE) {
       call RadioControl.start();
@@ -131,9 +172,7 @@ module RadioSenderM {
     beginFileMsg->uncompressedSize = uncompressedSize;
     beginFileMsg->compressionType = compressionType;
 
-    if (_state == IDLE) {
-      changeState(BEGIN_TRANSFER);
-    }
+    changeState(BEGIN_TRANSFER);
   }
 
   command bool RadioSender.canSend() {
@@ -197,6 +236,8 @@ module RadioSenderM {
       } else if (_state == SENDING_CHUNK && msg_type == AM_MSG_NACK_PARTIAL_DATA) {
         _recoverSeq = (uint16_t) payload; //TODO: Check this (just a random guess at midnight...)
         changeState(RECOVERY);
+      } else if (_state == RECOVERY && msg_type == AM_MSG_ACK_RECOVERY) {
+        changeState(SENDING_CHUNK);
       } else {
         _error = RS_ERR_INVALID_STATE;
         changeState(ERROR);

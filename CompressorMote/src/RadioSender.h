@@ -15,8 +15,10 @@ enum {
   AM_MSG_NACK_PARTIAL_DATA  = 23,
   AM_MSG_END_OF_CHUNK       = 24,
   AM_MSG_ACK_END_OF_CHUNK   = 25,
-  AM_MSG_EOF                = 26,
-  AM_MSG_ACK_EOF            = 27,
+  AM_MSG_RECOVERY           = 26,
+  AM_MSG_ACK_RECOVERY       = 27,
+  AM_MSG_EOF                = 28,
+  AM_MSG_ACK_EOF            = 29,
 
   BUFFER_CAPACITY = 128,
   PACKET_CAPACITY = 64
@@ -32,6 +34,11 @@ typedef enum {
   END_OF_FILE,
   ERROR
 } State;
+
+typedef enum {
+  SENDING,
+  RECEIVING
+} SubState;
 
 typedef nx_struct {
   nx_uint32_t uncompressedSize;
