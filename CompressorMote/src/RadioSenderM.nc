@@ -1,5 +1,4 @@
-#include "RadioSender.h"
-
+#include "RadioSender.h" 
 module RadioSenderM {
   provides interface RadioSender;
 
@@ -22,30 +21,34 @@ module RadioSenderM {
   task void protocolIteration() {
       switch (_state) {
         case IDLE:
-          /* Do nothing */
+          call RadioControl.stop();
           printf("IDLE\n");
           break;
         case READY:
           printf("READY\n");
-          /* TODO: Use the state machine if this event isn't actually needed */
           signal RadioSender.initDone();
           break;
         case BEGIN_TRANSFER:
           printf("BEGIN_TRANSFER\n");
-
-          if (_subState == SENDING) {
-            if (call RadioSend.send[AM_MSG_BEGIN_FILE](AM_BROADCAST_ADDR, &packet, sizeof(BeginFileMsg)) != SUCCESS) {
-              _error = RS_ERR_SEND_FAILED;
-              changeState(ERROR);
+          switch (_subState) {
+            case SENDING:
+              /* TODO: Call Packet.getPayload() here or what ?? */
+              printf("Sending AM_MSG_BEGIN_FILE\n");
+              if (call RadioSend.send[AM_MSG_BEGIN_FILE](AM_BROADCAST_ADDR, &packet, sizeof(BeginFileMsg)) != SUCCESS) {
+                _error = RS_ERR_SEND_FAILED;
+                changeState(ERROR);
+                break;
+              }
+              changeSubState(WAITING);
               break;
-            }
-          } else if (_subState == WAITING) {
-            if (_msgType == AM_MSG_ACK_BEGIN_FILE) {
-              _msgType = NULL;
-              changeSubState(SENDING);
-              changeState(SENDING_CHUNK);
-              break;
-            }
+            case WAITING:
+              if (_msgType == AM_MSG_ACK_BEGIN_FILE) {
+                printf("Received AM_MSG_ACK_BEGIN_FILE\n");
+                _msgType = NULL;
+                changeSubState(SENDING);
+                changeState(SENDING_CHUNK);
+                break;
+              }
           }
           break;
         case SENDING_CHUNK:
@@ -55,6 +58,7 @@ module RadioSenderM {
           uint8_t transferSize = availableBytes;
 
           if (_msgType == AM_MSG_NACK_PARTIAL_DATA) {
+            printf("Received AM_MSG_NACK_PARTIAL_DATA\n");
             _msgType = NULL;
             changeState(RECOVERY);
             break;
@@ -72,6 +76,7 @@ module RadioSenderM {
               break;
             }
 
+            printf("Sending AM_MSG_PARTIAL_DATA\n");
             if (call RadioSend.send[AM_MSG_PARTIAL_DATA](AM_BROADCAST_ADDR, &packet, transferSize) != SUCCESS) {
               _error = RS_ERR_SEND_FAILED;
               changeState(ERROR);
@@ -92,6 +97,7 @@ module RadioSenderM {
             if (i == (currentSeq - recoverSeq) //something like that but it's a stupid guess
               packet = recoveryBuffer[i];*/
 
+          printf("Sending AM_MSG_RECOVERY\n");
           msg = (PartialDataMsg *) call Packet.getPayload(&packet, sizeof(PartialDataMsg));
           if (call RadioSenderError.send[AM_MSG_RECOVERY](AM_BROADCAST_ADDR, &packet, transferSize) != SUCCESS) {
             _error = RS_ERR_SEND_FAILED;
@@ -104,23 +110,45 @@ module RadioSenderM {
           break;
         case END_OF_CHUNK:
           printf("END_OF_CHUNK\n");
-          if (call RadioSend.send[AM_MSG_END_OF_CHUNK](AM_BROADCAST_ADDR, &packet, 0) != SUCCESS) {
-            _error = RS_ERR_SEND_FAILED;
-            changeState(ERROR);
-            break;
+          switch (_subState) {
+            case SENDING:
+              if (call RadioSend.send[AM_MSG_END_OF_CHUNK](AM_BROADCAST_ADDR, &packet, 0) != SUCCESS) {
+                _error = RS_ERR_SEND_FAILED;
+                changeState(ERROR);
+                break;
+              }
+              changeSubState(WAITING);
+              break;
+            case WAITING:
+              if (_msgType == AM_MSG_ACK_END_OF_CHUNK) {
+                printf("Received AM_MSG_ACK_END_OF_CHUNK\n");
+                _msgType = NULL;
+                changeSubState(SENDING);
+                changeState(SENDING_CHUNK);
+              }
           }
 
           //TODO: Use another state to wait for AM_MSG_ACK_END_OF_CHUNK ?
-          changeSubState(WAITING);
+          /*changeSubState(WAITING);*/
           break;
         case END_OF_FILE:
           printf("END_OF_FILE\n");
-          if (call RadioSend.send[AM_MSG_EOF](AM_BROADCAST_ADDR, &packet, 0) != SUCCESS) {
-            _error = RS_ERR_SEND_FAILED;
-            changeState(ERROR);
-            break;
+          switch (_subState) {
+            case SENDING:
+              if (call RadioSend.send[AM_MSG_EOF](AM_BROADCAST_ADDR, &packet, 0) != SUCCESS) {
+                _error = RS_ERR_SEND_FAILED;
+                changeState(ERROR);
+                break;
+              }
+              changeSubState(WAITING);
+            case WAITING:
+              if (_msgType == AM_MSG_ACK_END_OF_FILE) {
+                printf("Received AM_MSG_ACK_END_OF_FILE\n");
+                _msgType = NULL;
+                changeSubState(SENDING);
+                changeState(IDLE);
+              }
           }
-          changeSubState(WAITING);
           break;
         case ERROR:
           printf("ERROR\n");
@@ -182,6 +210,10 @@ module RadioSenderM {
     post protocolIteration();
   }
 
+  /* TODO: Move the call to RadioControl.start() to somewhere when we NEED the radio ON
+   * and then remove the READY state. Do the same for RadioControl.stop(). Use the events
+   * to switch states.
+   */
   command void RadioSender.init() {
     if (_state == IDLE) {
       call RadioControl.start();
@@ -229,41 +261,18 @@ module RadioSenderM {
   }
 
   event void RadioSend.sendDone[am_id_t msg_type](message_t *msg, error_t error) {
-    /*if (error != SUCCESS) {
-      signal RadioSender.error(RS_ERR_SEND_FAILED);
-      return;
-    }
-
     atomic {
-      if (currentState == STATE_SENDING_PARTIAL_DATA) {
-        currentState = STATE_WAITING_PARTIAL_DATA_ACK;
-      } else if (currentState == STATE_SENDING_EOF) {
-        currentState = STATE_WAITING_EOF_ACK;
-      } else if (currentState == STATE_SENDING_BEGIN_FILE) {
-        currentState = STATE_WAITING_BEGIN_FILE_ACK;
-      } else {
-        signal RadioSender.error(RS_ERR_INVALID_STATE);
+      if (error != SUCCESS) {
+        _error = RS_ERR_SEND_FAILED;
+        changeState(ERROR);
       }
-    }*/
+    }
   }
 
   event message_t* RadioReceive.receive[am_id_t msg_type](message_t *msg, void *payload, uint8_t len) {
     atomic {
       _msgType = msg_type;
       _msgPayload = payload;
-      /*if (_state == BEGIN_TRANSFER && msg_type == AM_MSG_ACK_BEGIN_FILE) {
-        changeState(SENDING_CHUNK); //TODO: We might not want to run this iteration...
-      } else if (_state == END_OF_CHUNK && msg_type == AM_MSG_ACK_END_OF_CHUNK) {
-        changeState(SENDING_CHUNK); //TODO: We might not want to run this iteration...
-      } else if (_state == SENDING_CHUNK && msg_type == AM_MSG_NACK_PARTIAL_DATA) {
-        _recoverSeq = (uint16_t) payload; //TODO: Check this (just a random guess at midnight...)
-        changeState(RECOVERY);
-      } else if (_state == RECOVERY && msg_type == AM_MSG_ACK_RECOVERY) {
-        changeState(SENDING_CHUNK);
-      } else {
-        _error = RS_ERR_INVALID_STATE;
-        changeState(ERROR);
-      }*/
     }
     return msg;
   }
