@@ -9,6 +9,7 @@ COMPRESSION_TYPE_BLOCK_TRUNC = 2
 COMPRESSION_TYPE_ROSS = 3
 COMPRESSION_TYPE_BLOCK = 4
 COMPRESSION_TYPE_NETWOLOPE = 5
+COMPRESSION_TYPE_NETWOLOPE2 = 6
 
 class DecompressorBase:
   def __init__(self):
@@ -19,6 +20,9 @@ class DecompressorBase:
 
   def _name(self):
     raise Exception('Subclass should implement this method')
+
+  def _get_bit(self, value, position):
+    return ((1 << position) & value) >> position
 
   def begin(self, file_path, image_width):
     in_file = open(file_path, 'rb')
@@ -83,6 +87,8 @@ class DecompressorBase:
       return BlockDecompressor()
     elif compression_type == COMPRESSION_TYPE_NETWOLOPE:
       return NetwolopeDecompressor()
+    elif compression_type == COMPRESSION_TYPE_NETWOLOPE2:
+      return Netwolope2Decompressor()
     else:
       return UnknownDecompressor()
 
@@ -162,6 +168,35 @@ class NetwolopeDecompressor(DecompressorBase):
       out_buffer += [number1, number2]
     return out_buffer
 
+class Netwolope2Decompressor(DecompressorBase):
+  def __init__(self):
+    DecompressorBase.__init__(self)
+
+  def _name(self):
+    return 'Netwolope2'
+
+  def _decompress(self, compressed_data, image_width):
+    out_buffer = []
+    tuples = izip(*[iter(compressed_data)]*5)
+    for tup in tuples:
+      hex_val = int(tup[0].encode('hex'), 16)
+      a1 = int(tup[1].encode('hex'), 16)
+      b1 = int(tup[2].encode('hex'), 16)
+      a2 = int(tup[3].encode('hex'), 16)
+      b2 = int(tup[4].encode('hex'), 16)
+
+      for i in range(4):
+        if self._get_bit(hex_val, 7-i) == 1:
+          out_buffer.append(a1)
+        else:
+          out_buffer.append(b1)
+      for i in range(4, 8):
+        if self._get_bit(hex_val, 7-i) == 1:
+          out_buffer.append(a2)
+        else:
+          out_buffer.append(b2)
+    return out_buffer
+
 
 class BlockTruncationDecompressor(DecompressorBase):
   def __init__(self):
@@ -169,9 +204,6 @@ class BlockTruncationDecompressor(DecompressorBase):
 
   def _name(self):
     return 'Block Truncation'
-
-  def _get_bit(self, value, position):
-    return ((1 << position) & value) >> position
 
   def _decompress(self, compressed_data, image_width):
     if len(compressed_data) % 2 != 0:
@@ -203,7 +235,7 @@ class BlockTruncationDecompressor(DecompressorBase):
     return self.blocks_to_linear(out_buffer, image_width, block_size=4)
 
 if __name__ == '__main__':
-  #file_path = 'received_files/file-2018-04-28-07-05-24.part'
-  #BlockDecompressor().begin(file_path, image_width=256)
+  #file_path = 'received_files/file-2018-04-28-10-11-29.part'
+  #Netwolope2Decompressor().begin(file_path, image_width=64)
   pass
 
