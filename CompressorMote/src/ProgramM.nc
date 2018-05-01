@@ -1,5 +1,4 @@
 #include <UserButton.h>
-#include "printf.h"
 
 module ProgramM {
   uses {
@@ -25,21 +24,20 @@ implementation {
   
   event void ButtonNotify.notify(button_state_t state){
     if ( state == BUTTON_PRESSED ) {
-      call Leds.set(255);
+      //call Leds.set(255);
     } else if (state == BUTTON_RELEASED) {
-      call Leds.set(0);
+      //call Leds.set(0);
       call FlashReader.prepareRead();
     }
   }
   
   event void Boot.booted(){
-    printf("Booted\n");
     call ButtonNotify.enable();
     call PCFileReceiver.init();
   }
   
   event void PCFileReceiver.initDone(){ 
-     call Leds.led1On();
+     //call Leds.led1On();
   }
   
   event void PCFileReceiver.fileBegin(uint16_t width){
@@ -47,7 +45,7 @@ implementation {
   }
     
   event void FlashWriter.readyToWrite(){
-    call Leds.led1Toggle();
+    //call Leds.led1Toggle();
     call PCFileReceiver.sendFileBeginAck();
   }
   
@@ -56,7 +54,7 @@ implementation {
   }
 
   event void FlashWriter.chunkWritten(){
-    call Leds.led1Toggle();
+    //call Leds.led1Toggle();
     call PCFileReceiver.receiveMore();
   }
   
@@ -76,7 +74,7 @@ implementation {
   event void RadioSender.fileBeginAcknowledged(){ 
     call Compressor.fileBegin(_imageWidth);
     call FlashReader.readNextChunk();
-    call Leds.led1Toggle();
+    //call Leds.led1Toggle();
   }
   
 
@@ -86,8 +84,6 @@ implementation {
   }
   
   event void Compressor.compressed(){
-    printf("Sending compressed data\n");
-    printfflush();
     call RadioSender.sendPartialData();
   }
 
@@ -97,15 +93,13 @@ implementation {
       call RadioSender.sendPartialData();
       
     } else if (call FlashReader.isFinished()) {
-      printf("Sending EOF to SinkMote!\n");
-      printfflush();
       call RadioSender.sendEOF();
-      call Leds.led2On();
+      //call Leds.led2On();
       
     } else {
       _sendDoneCounter = 0;
       call FlashReader.readNextChunk();
-      call Leds.led1Toggle();
+      //call Leds.led1Toggle();
     }
   }  
   
