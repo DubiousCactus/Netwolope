@@ -1,4 +1,5 @@
 #include "RadioSender.h" 
+
 module RadioSenderM {
   provides interface RadioSender;
 
@@ -11,14 +12,24 @@ module RadioSenderM {
 
 } implementation {
 
+  /* Functions and tasks definitions */
+  void changeState(State newState);
+  void changeSubState(SubState newState);
+
   State _state = IDLE;
   SubState _subState;
   RadioSenderError _error;
+  MessageType _msgType;
+  uint16_t _msgPayload;
   message_t packet;
-  BeginFileMsg *beginFileMsg = (BeginFileMsg *) call Packet.getPayload(&packet, sizeof(BeginFileMsg));
+  BeginFileMsg *beginFileMsg;
 
   /* Runs through the state machine to execute the appropriate actions */
   task void protocolIteration() {
+      PartialDataMsg *msg;
+      uint16_t availableBytes = call Reader.available();
+      uint8_t transferSize = availableBytes;
+
       switch (_state) {
         case IDLE:
           call RadioControl.stop();
@@ -39,12 +50,12 @@ module RadioSenderM {
                 changeState(ERROR);
                 break;
               }
-              changeSubState(WAITING);
+              changeSubState(RECEIVING);
               break;
-            case WAITING:
+            case RECEIVING:
               if (_msgType == AM_MSG_ACK_BEGIN_FILE) {
                 printf("Received AM_MSG_ACK_BEGIN_FILE\n");
-                _msgType = NULL;
+                _msgType = 0;
                 changeSubState(SENDING);
                 changeState(SENDING_CHUNK);
                 break;
@@ -53,13 +64,9 @@ module RadioSenderM {
           break;
         case SENDING_CHUNK:
           printf("SENDING_CHUNK\n");
-          PartialDataMsg *msg;
-          uint16_t availableBytes = call Reader.available();
-          uint8_t transferSize = availableBytes;
-
           if (_msgType == AM_MSG_NACK_PARTIAL_DATA) {
             printf("Received AM_MSG_NACK_PARTIAL_DATA\n");
-            _msgType = NULL;
+            _msgType = 0;
             changeState(RECOVERY);
             break;
           }
@@ -99,14 +106,14 @@ module RadioSenderM {
 
           printf("Sending AM_MSG_RECOVERY\n");
           msg = (PartialDataMsg *) call Packet.getPayload(&packet, sizeof(PartialDataMsg));
-          if (call RadioSenderError.send[AM_MSG_RECOVERY](AM_BROADCAST_ADDR, &packet, transferSize) != SUCCESS) {
+          if (call RadioSend.send[AM_MSG_RECOVERY](AM_BROADCAST_ADDR, &packet, transferSize) != SUCCESS) {
             _error = RS_ERR_SEND_FAILED;
             changeState(ERROR);
             break;
           }
 
           //TODO: Use another state to wait for the ACK ?
-          changeSubState(WAITING);
+          changeSubState(RECEIVING);
           break;
         case END_OF_CHUNK:
           printf("END_OF_CHUNK\n");
@@ -117,19 +124,19 @@ module RadioSenderM {
                 changeState(ERROR);
                 break;
               }
-              changeSubState(WAITING);
+              changeSubState(RECEIVING);
               break;
-            case WAITING:
+            case RECEIVING:
               if (_msgType == AM_MSG_ACK_END_OF_CHUNK) {
                 printf("Received AM_MSG_ACK_END_OF_CHUNK\n");
-                _msgType = NULL;
+                _msgType = 0;
                 changeSubState(SENDING);
                 changeState(SENDING_CHUNK);
               }
           }
 
           //TODO: Use another state to wait for AM_MSG_ACK_END_OF_CHUNK ?
-          /*changeSubState(WAITING);*/
+          /*changeSubState(RECEIVING);*/
           break;
         case END_OF_FILE:
           printf("END_OF_FILE\n");
@@ -140,11 +147,11 @@ module RadioSenderM {
                 changeState(ERROR);
                 break;
               }
-              changeSubState(WAITING);
-            case WAITING:
-              if (_msgType == AM_MSG_ACK_END_OF_FILE) {
-                printf("Received AM_MSG_ACK_END_OF_FILE\n");
-                _msgType = NULL;
+              changeSubState(RECEIVING);
+            case RECEIVING:
+              if (_msgType == AM_MSG_ACK_EOF) {
+                printf("Received AM_MSG_ACK_EOF\n");
+                _msgType = 0;
                 changeSubState(SENDING);
                 changeState(IDLE);
               }
@@ -180,10 +187,13 @@ module RadioSenderM {
         break;
       case END_OF_FILE:
         invalid = (_state != SENDING_CHUNK);
+        break;
+      case ERROR:
+        //Everyone is welcome !
     }
 
     if (invalid) {
-      signal RadioSenderError.error(RS_ERR_INVALID_STATE);
+      signal RadioSender.error(RS_ERR_INVALID_STATE);
       return;
     }
 
@@ -195,14 +205,14 @@ module RadioSenderM {
     bool invalid = FALSE;
     switch (newState) {
       case SENDING:
-        invalid = (_state != BEGIN_TRANSFER && _state != RECOVERY && _state != END_OF_CHUNK && _state != END_OF_FILE && _subState != WAITING);
+        invalid = (_state != BEGIN_TRANSFER && _state != RECOVERY && _state != END_OF_CHUNK && _state != END_OF_FILE && _subState != RECEIVING);
         break;
-      case WAITING:
+      case RECEIVING:
         invalid = (_state != BEGIN_TRANSFER && _state != RECOVERY && _state != END_OF_CHUNK && _state != END_OF_FILE && _subState != SENDING);
     }
 
     if (invalid) {
-      signal RadioSenderError.error(RS_ERR_INVALID_STATE);
+      signal RadioSender.error(RS_ERR_INVALID_STATE);
       return;
     }
 
@@ -221,6 +231,7 @@ module RadioSenderM {
   }
 
   command void RadioSender.sendFileBegin(uint32_t uncompressedSize, uint8_t compressionType) {
+    beginFileMsg = (BeginFileMsg *) call Packet.getPayload(&packet, sizeof(BeginFileMsg));
     beginFileMsg->uncompressedSize = uncompressedSize;
     beginFileMsg->compressionType = compressionType;
 
@@ -272,7 +283,7 @@ module RadioSenderM {
   event message_t* RadioReceive.receive[am_id_t msg_type](message_t *msg, void *payload, uint8_t len) {
     atomic {
       _msgType = msg_type;
-      _msgPayload = payload;
+      _msgPayload = (uint16_t) payload; //The payload can only be a sequence number
     }
     return msg;
   }

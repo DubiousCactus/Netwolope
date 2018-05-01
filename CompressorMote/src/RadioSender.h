@@ -8,7 +8,7 @@ typedef enum {
   RS_ERR_SEND_FAILED,
 } RadioSenderError;
 
-enum {
+typedef enum {
   AM_MSG_BEGIN_FILE         = 20,
   AM_MSG_ACK_BEGIN_FILE     = 21,
   AM_MSG_PARTIAL_DATA       = 22,
@@ -22,7 +22,7 @@ enum {
 
   BUFFER_CAPACITY = 128,
   PACKET_CAPACITY = 64
-};
+} MessageType;
 
 typedef enum {
   IDLE,
