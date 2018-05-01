@@ -1,4 +1,5 @@
 #include "RadioSender.h" 
+#include "printf.h"
 
 module RadioSenderM {
   provides interface RadioSender;
@@ -50,12 +51,14 @@ module RadioSenderM {
                 changeState(ERROR);
                 break;
               }
+              printf("Setting sub state to RECEIVING\n");
               changeSubState(RECEIVING);
               break;
             case RECEIVING:
               if (_msgType == AM_MSG_ACK_BEGIN_FILE) {
                 printf("Received AM_MSG_ACK_BEGIN_FILE\n");
                 _msgType = 0;
+                printf("Changing state to SENDING_CHUNK\n");
                 changeSubState(SENDING);
                 changeState(SENDING_CHUNK);
                 break;
@@ -162,6 +165,7 @@ module RadioSenderM {
           signal RadioSender.error(_error);
           changeState(IDLE);
       }
+    printfflush();
   }
 
   /* Switch to new state and run next protocol iteration if the current state allows it */
@@ -173,6 +177,7 @@ module RadioSenderM {
         break;
       case READY:
         invalid = (_state != IDLE);
+        break;
       case BEGIN_TRANSFER:
         invalid = (_state != READY);
         break;
@@ -225,9 +230,8 @@ module RadioSenderM {
    * to switch states.
    */
   command void RadioSender.init() {
-    if (_state == IDLE) {
+    if (_state == IDLE)
       call RadioControl.start();
-    }
   }
 
   command void RadioSender.sendFileBegin(uint32_t uncompressedSize, uint8_t compressionType) {
@@ -247,14 +251,12 @@ module RadioSenderM {
   }
 
   command void RadioSender.sendPartialData() {
-    if (_state != SENDING_CHUNK) {
-      changeState(SENDING_CHUNK);
-    } else {
-      post protocolIteration();
-    }
+    printf("RadioSender.sendPartialData(): post protocolIteration();\n");
+    post protocolIteration();
   }
 
   command void RadioSender.sendEOF() {
+    printf("RadioSender.sendEOF(): changeState(END_OF_FILE);\n");
     changeState(END_OF_FILE);
   }
 
@@ -282,8 +284,10 @@ module RadioSenderM {
 
   event message_t* RadioReceive.receive[am_id_t msg_type](message_t *msg, void *payload, uint8_t len) {
     atomic {
+      printf("Receiving message of type %d\n", msg_type);
       _msgType = msg_type;
       _msgPayload = (uint16_t) payload; //The payload can only be a sequence number
+      post protocolIteration();
     }
     return msg;
   }

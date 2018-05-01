@@ -1,4 +1,3 @@
-#include <UserButton.h>
 #include "printf.h"
 
 module ProgramM {
@@ -14,12 +13,13 @@ module ProgramM {
     interface FlashError;
     interface CircularBufferReader as UncompressedBufferReader;
     interface CircularBufferWriter as UncompressedBufferWriter;
-    interface Notify<button_state_t> as Button;
+    interface Timer<TMilli> as Timer;
   }
 }
 implementation {
   uint16_t _imageWidth;
   uint8_t ready = 0;
+  uint8_t wego = 0;
   uint16_t i;
 
   uint8_t mock[1040] = {
@@ -112,76 +112,74 @@ implementation {
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
   };
   
-  event void Boot.booted(){
+  event void Boot.booted() {
     for (i = 0; i < 1040; i++)
       call UncompressedBufferWriter.write(mock[i]);
     
-    call Button.enable();
-    call FlashReader.prepareRead();
+    wego = 1;
+    call Timer.startPeriodic(1000);
     /*call PCFileReceiver.init();*/
   }
 
-  event void Button.notify(button_state_t state) {
-    if (state == BUTTON_PRESSED && ready) {
-      printf("Starting compression...\n");
-      call Compressor.fileBegin(_imageWidth);
-      call FlashReader.readNextChunk();
-      ready = 0;
-    }
-    /*printfflush();*/
-  }
-  
-  event void PCFileReceiver.initDone(){ 
+  event void Timer.fired() {
+    if (wego) {
+      wego = 0;
+      printf("HERE WE GO!\n\n");
+      printfflush();
+      call FlashReader.prepareRead();
+   } 
+  } 
+
+  event void PCFileReceiver.initDone() { 
      call Leds.set(0);
      call Leds.led1On();
   }
   
-  event void PCFileReceiver.fileBegin(uint16_t width){
+  event void PCFileReceiver.fileBegin(uint16_t width) {
     call FlashWriter.prepareWrite(width);
   }
     
-  event void FlashWriter.readyToWrite(){
+  event void FlashWriter.readyToWrite() {
     call Leds.led1Toggle();
     call PCFileReceiver.sendFileBeginAck();
   }
   
-  event void PCFileReceiver.receivedData(){
+  event void PCFileReceiver.receivedData() {
     call FlashWriter.writeNextChunk();
   }
 
-  event void FlashWriter.chunkWritten(){
+  event void FlashWriter.chunkWritten() {
     call Leds.led1Toggle();
     call PCFileReceiver.receiveMore();
   }
   
-  event void PCFileReceiver.fileEnd(){
+  event void PCFileReceiver.fileEnd() {
     call FlashReader.prepareRead();
   }
   
-  event void FlashReader.readyToRead(uint16_t width){
+  event void FlashReader.readyToRead(uint16_t width) {
     _imageWidth = width;
     call RadioSender.init();
   }
   
-  event void RadioSender.initDone(){ 
+  event void RadioSender.initDone() { 
     call RadioSender.sendFileBegin(_imageWidth, call Compressor.getCompressionType());
   }
   
-  event void RadioSender.fileBeginAcknowledged(){ 
-    /*call Compressor.fileBegin(_imageWidth);
-    call FlashReader.readNextChunk();*/
-    ready = 1;
+  event void RadioSender.fileBeginAcknowledged() { 
+    call Compressor.fileBegin(_imageWidth);
+    call FlashReader.readNextChunk();
   }
 
-  event void FlashReader.chunkRead(){
+  event void FlashReader.chunkRead() {
     call Compressor.compress(call FlashReader.isFinished());
   }
   
-  event void Compressor.compressed(){
+  event void Compressor.compressed() {
     call RadioSender.sendPartialData();
   }
 
-  event void RadioSender.sendDone(){
+  event void RadioSender.sendDone() {
     if (call RadioSender.canSend()) {
       call RadioSender.sendPartialData();
       
@@ -194,19 +192,19 @@ implementation {
     }
   }  
   
-  event void PCFileReceiver.error(PCFileReceiverError error){
+  event void PCFileReceiver.error(PCFileReceiverError error) {
     call ErrorIndicator.blinkRed(error);
   }
 
-  event void RadioSender.error(RadioSenderError error){
+  event void RadioSender.error(RadioSenderError error) {
     call ErrorIndicator.blinkRed(error);
   }
 
-  event void FlashError.onError(error_t error){
+  event void FlashError.onError(error_t error) {
     call ErrorIndicator.blinkRed(2);
   }
 
-  event void Compressor.error(CompressionError error){
+  event void Compressor.error(CompressionError error) {
     call ErrorIndicator.blinkRed(3);
   }
 }
