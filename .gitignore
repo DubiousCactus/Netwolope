@@ -12,6 +12,7 @@ build
 *.iws
 *.orig
 *.swp
+*.pyc
 *~
 .ipynb_checkpoints
 received_files
