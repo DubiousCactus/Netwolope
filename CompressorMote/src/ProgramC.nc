@@ -4,7 +4,7 @@
 #include "StorageVolumes.h"
 //#include "printf.h"
 
-#define COMPRESSION_ROSS
+#define COMPRESSION_RUN_LENGTH
 
 configuration ProgramC {
 }
