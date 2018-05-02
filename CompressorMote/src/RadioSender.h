@@ -12,13 +12,13 @@ typedef enum {
   AM_MSG_BEGIN_FILE         = 20,
   AM_MSG_ACK_BEGIN_FILE     = 21,
   AM_MSG_PARTIAL_DATA       = 22,
-  AM_MSG_NACK_PARTIAL_DATA  = 123, //TODO: Reset to 23 when done testing
-  AM_MSG_END_OF_CHUNK       = 124,
-  AM_MSG_ACK_END_OF_CHUNK   = 125,
+  AM_MSG_NACK_PARTIAL_DATA  = 23,
+  AM_MSG_END_OF_CHUNK       = 24,
+  AM_MSG_ACK_END_OF_CHUNK   = 25,
   AM_MSG_RECOVERY           = 26,
   AM_MSG_ACK_RECOVERY       = 27,
-  AM_MSG_EOF                = 24,
-  AM_MSG_ACK_EOF            = 25,
+  AM_MSG_EOF                = 28,
+  AM_MSG_ACK_EOF            = 29,
 
   BUFFER_CAPACITY = 128,
   PACKET_CAPACITY = 64
@@ -49,6 +49,10 @@ typedef nx_struct {
 typedef nx_struct {
   nx_uint32_t length;
 } AckMsg;
+
+typedef nx_struct {
+  nx_uint32_t seq;
+} NackMsg;
 
 typedef nx_struct {
   nx_uint8_t data[PACKET_CAPACITY];

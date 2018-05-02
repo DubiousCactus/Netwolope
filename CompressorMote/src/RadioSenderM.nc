@@ -82,9 +82,6 @@ module RadioSenderM {
               if (availableBytes > 0) {
                 changeSubState(SENDING);
                 break;
-              } else {
-                /*printf("\tNo more bytes available. Signaling ((done))\n");*/
-                /*signal RadioSender.sendDone();*/
               }
               break;
             case SENDING:
@@ -139,7 +136,6 @@ module RadioSenderM {
             break;
           }
 
-          //TODO: Use another state to wait for the ACK ?
           changeSubState(RECEIVING);
           break;
         case END_OF_CHUNK:
@@ -161,9 +157,6 @@ module RadioSenderM {
                 changeState(SENDING_CHUNK);
               }
           }
-
-          //TODO: Use another state to wait for AM_MSG_ACK_END_OF_CHUNK ?
-          /*changeSubState(RECEIVING);*/
           break;
         case END_OF_FILE:
           printf("END_OF_FILE\n");
@@ -257,6 +250,7 @@ module RadioSenderM {
    * to switch states.
    */
   command void RadioSender.init() {
+    /* TODO: Move this to the IDLE State !!*/
     if (_state == IDLE)
       call RadioControl.start();
   }
