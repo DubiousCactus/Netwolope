@@ -59,6 +59,7 @@ module RadioSenderM {
                 printf("\tReceived AM_MSG_ACK_BEGIN_FILE\n");
                 _msgType = 0;
                 printf("\tChanging state to SENDING_CHUNK\n");
+                signal RadioSender.fileBeginAcknowledged();
                 changeSubState(WAITING); //Wait for compression
                 changeState(SENDING_CHUNK);
                 break;
@@ -88,10 +89,13 @@ module RadioSenderM {
               break;
             case SENDING:
               printf("  SENDING\n");
-              if (availableBytes < 0) {
-                changeSubState(WAITING);
+              if (availableBytes <= 0) {
+                signal RadioSender.sendDone();
                 break;
               }
+
+              printf("[!] IN CIRCULAR BUFFER: %d bytes\n", call Reader.available());
+              /* Only send what we can afford to */
               if (availableBytes > PACKET_CAPACITY) {
                 transferSize = PACKET_CAPACITY;
               }
@@ -110,6 +114,7 @@ module RadioSenderM {
                 changeState(ERROR);
                 break;
               }
+              printf("[!] IN CIRCULAR BUFFER: %d bytes\n", call Reader.available());
               break;
             case RECEIVING:
               /* Not used here */

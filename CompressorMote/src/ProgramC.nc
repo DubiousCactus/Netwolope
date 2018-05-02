@@ -3,7 +3,7 @@
 #include "printf.h"
 #include "StorageVolumes.h"
 
-#define COMPRESSION_RUN_LENGTH
+#define COMPRESSION_NONE
 
 configuration ProgramC {
 }

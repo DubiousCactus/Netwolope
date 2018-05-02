@@ -18,7 +18,6 @@ module ProgramM {
 }
 implementation {
   uint16_t _imageWidth;
-  uint8_t ready = 0;
   uint8_t wego = 0;
   uint16_t i;
 
@@ -173,6 +172,7 @@ implementation {
   }
 
   event void FlashReader.chunkRead() {
+    printf("[PROGRAM] event chunkRead\n");
     call Compressor.compress(call FlashReader.isFinished());
   }
   
@@ -182,6 +182,7 @@ implementation {
   }
 
   event void RadioSender.sendDone() {
+    /* The first if should be removed eventually */
     if (call RadioSender.canSend()) {
       call RadioSender.sendPartialData();
       
