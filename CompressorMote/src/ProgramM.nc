@@ -167,6 +167,7 @@ implementation {
   }
   
   event void RadioSender.fileBeginAcknowledged() { 
+    printf("[PROGRAM] event fileBeginAcknowledged\n");
     call Compressor.fileBegin(_imageWidth);
     call FlashReader.readNextChunk();
   }
@@ -176,6 +177,7 @@ implementation {
   }
   
   event void Compressor.compressed() {
+    printf("[PROGRAM] event compressed\n");
     call RadioSender.sendPartialData();
   }
 

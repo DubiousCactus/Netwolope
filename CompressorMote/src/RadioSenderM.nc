@@ -45,20 +45,20 @@ module RadioSenderM {
           switch (_subState) {
             case SENDING:
               /* TODO: Call Packet.getPayload() here or what ?? */
-              printf("Sending AM_MSG_BEGIN_FILE\n");
+              printf("\tSending AM_MSG_BEGIN_FILE\n");
               if (call RadioSend.send[AM_MSG_BEGIN_FILE](AM_BROADCAST_ADDR, &packet, sizeof(BeginFileMsg)) != SUCCESS) {
                 _error = RS_ERR_SEND_FAILED;
                 changeState(ERROR);
                 break;
               }
-              printf("Setting sub state to RECEIVING\n");
+              printf("\tSetting sub state to RECEIVING\n");
               changeSubState(RECEIVING);
               break;
             case RECEIVING:
               if (_msgType == AM_MSG_ACK_BEGIN_FILE) {
-                printf("Received AM_MSG_ACK_BEGIN_FILE\n");
+                printf("\tReceived AM_MSG_ACK_BEGIN_FILE\n");
                 _msgType = 0;
-                printf("Changing state to SENDING_CHUNK\n");
+                printf("\tChanging state to SENDING_CHUNK\n");
                 changeSubState(SENDING);
                 changeState(SENDING_CHUNK);
                 break;
@@ -68,33 +68,49 @@ module RadioSenderM {
         case SENDING_CHUNK:
           printf("SENDING_CHUNK\n");
           if (_msgType == AM_MSG_NACK_PARTIAL_DATA) {
-            printf("Received AM_MSG_NACK_PARTIAL_DATA\n");
+            printf("\tReceived AM_MSG_NACK_PARTIAL_DATA\n");
             _msgType = 0;
             changeState(RECOVERY);
             break;
           }
 
-          if (availableBytes > 0) {
-            if (availableBytes > PACKET_CAPACITY) {
-              transferSize = PACKET_CAPACITY;
-            }
-
-            msg = (PartialDataMsg *) call Packet.getPayload(&packet, sizeof(PartialDataMsg));
-            if (call Reader.readChunk((uint8_t *) msg->data, (uint16_t) transferSize) != SUCCESS) {
-              _error = RS_ERR_PROGRAMMER;
-              changeState(ERROR);
+          switch (_subState) {
+            case WAITING:
+              printf("\tAvailable bytes: %d\n", availableBytes);
+              if (availableBytes > 0) {
+                changeSubState(SENDING);
+                break;
+              } else {
+                printf("\tNo more bytes available. Signaling ((done))\n");
+                signal RadioSender.sendDone();
+              }
               break;
-            }
+            case SENDING:
+              if (availableBytes < 0) {
+                changeSubState(WAITING);
+                break;
+              }
+              if (availableBytes > PACKET_CAPACITY) {
+                transferSize = PACKET_CAPACITY;
+              }
 
-            printf("Sending AM_MSG_PARTIAL_DATA\n");
-            if (call RadioSend.send[AM_MSG_PARTIAL_DATA](AM_BROADCAST_ADDR, &packet, transferSize) != SUCCESS) {
-              _error = RS_ERR_SEND_FAILED;
-              changeState(ERROR);
+              msg = (PartialDataMsg *) call Packet.getPayload(&packet, sizeof(PartialDataMsg));
+              printf("\tReading %d bytes from the circular buffer\n", transferSize);
+              if (call Reader.readChunk((uint8_t *) msg->data, (uint16_t) transferSize) != SUCCESS) {
+                _error = RS_ERR_PROGRAMMER;
+                changeState(ERROR);
+                break;
+              }
+
+              printf("\tSending AM_MSG_PARTIAL_DATA\n");
+              if (call RadioSend.send[AM_MSG_PARTIAL_DATA](AM_BROADCAST_ADDR, &packet, transferSize) != SUCCESS) {
+                _error = RS_ERR_SEND_FAILED;
+                changeState(ERROR);
+                break;
+              }
               break;
-            }
-          } else {
-            /* TODO: Use the state machine */
-            signal RadioSender.sendDone();
+            case RECEIVING:
+              break;
           }
           break;
         case RECOVERY:
@@ -107,7 +123,7 @@ module RadioSenderM {
             if (i == (currentSeq - recoverSeq) //something like that but it's a stupid guess
               packet = recoveryBuffer[i];*/
 
-          printf("Sending AM_MSG_RECOVERY\n");
+          printf("\tSending AM_MSG_RECOVERY\n");
           msg = (PartialDataMsg *) call Packet.getPayload(&packet, sizeof(PartialDataMsg));
           if (call RadioSend.send[AM_MSG_RECOVERY](AM_BROADCAST_ADDR, &packet, transferSize) != SUCCESS) {
             _error = RS_ERR_SEND_FAILED;
@@ -131,7 +147,7 @@ module RadioSenderM {
               break;
             case RECEIVING:
               if (_msgType == AM_MSG_ACK_END_OF_CHUNK) {
-                printf("Received AM_MSG_ACK_END_OF_CHUNK\n");
+                printf("\tReceived AM_MSG_ACK_END_OF_CHUNK\n");
                 _msgType = 0;
                 changeSubState(SENDING);
                 changeState(SENDING_CHUNK);
@@ -153,7 +169,7 @@ module RadioSenderM {
               changeSubState(RECEIVING);
             case RECEIVING:
               if (_msgType == AM_MSG_ACK_EOF) {
-                printf("Received AM_MSG_ACK_EOF\n");
+                printf("\tReceived AM_MSG_ACK_EOF\n");
                 _msgType = 0;
                 changeSubState(SENDING);
                 changeState(IDLE);
@@ -251,12 +267,12 @@ module RadioSenderM {
   }
 
   command void RadioSender.sendPartialData() {
-    printf("RadioSender.sendPartialData(): post protocolIteration();\n");
+    printf("\t* RadioSender.sendPartialData(): post protocolIteration();\n");
     post protocolIteration();
   }
 
   command void RadioSender.sendEOF() {
-    printf("RadioSender.sendEOF(): changeState(END_OF_FILE);\n");
+    printf("\t* RadioSender.sendEOF(): changeState(END_OF_FILE);\n");
     changeState(END_OF_FILE);
   }
 
@@ -284,7 +300,7 @@ module RadioSenderM {
 
   event message_t* RadioReceive.receive[am_id_t msg_type](message_t *msg, void *payload, uint8_t len) {
     atomic {
-      printf("Receiving message of type %d\n", msg_type);
+      printf("\t* Receiving message of type %d\n", msg_type);
       _msgType = msg_type;
       _msgPayload = (uint16_t) payload; //The payload can only be a sequence number
       post protocolIteration();

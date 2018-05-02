@@ -12,8 +12,7 @@ typedef enum {
   AM_MSG_BEGIN_FILE         = 20,
   AM_MSG_ACK_BEGIN_FILE     = 21,
   AM_MSG_PARTIAL_DATA       = 22,
-  AM_MSG_NACK_PARTIAL_DATA  = 123,
-  AM_MSG_ACK_PARTIAL_DATA = 23, //TEMPORARY
+  AM_MSG_NACK_PARTIAL_DATA  = 123, //TODO: Reset to 23 when done testing
   AM_MSG_END_OF_CHUNK       = 24,
   AM_MSG_ACK_END_OF_CHUNK   = 25,
   AM_MSG_RECOVERY           = 26,
@@ -36,7 +35,8 @@ typedef enum {
   ERROR
 } State;
 
-typedef enum {
+typedef enum {,
+  WAITING,
   SENDING,
   RECEIVING
 } SubState;
