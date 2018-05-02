@@ -1,7 +1,13 @@
+#define NEW_PRINTF_SEMANTICS
+
+#include "printf.h"
+
 configuration SinkMoteC{
 }
 implementation{
   components MainC;
+  components PrintfC;
+  components SerialStartC;
   components LedsC;
   components ActiveMessageC as Radio;
   

@@ -13,39 +13,39 @@ module SinkMoteM @safe() {
 }
 implementation{
 
-  event void Boot.booted(){
+  event void Boot.booted() {
     call PCFileSender.init();
   }
   
-  event void PCFileSender.initDone(){
+  event void PCFileSender.initDone() {
     call RadioReceiver.init();
   }
   
-  event void RadioReceiver.initDone(){
+  event void RadioReceiver.initDone() {
     call Leds.led1Toggle();
   }
   
-  event void RadioReceiver.receivedFileBegin(uint32_t uncompressedSize, uint8_t compressionType){
+  event void RadioReceiver.receivedFileBegin(uint32_t uncompressedSize, uint8_t compressionType) {
     call PCFileSender.sendFileBegin(uncompressedSize, compressionType);
     call Leds.led1Toggle();
   }
 
-  event void PCFileSender.beginFileSent(){
-    call RadioReceiver.sendBeginFileAckMsg();
+  event void PCFileSender.beginFileSent() {
+    /*call RadioReceiver.sendBeginFileAckMsg();*/
     call Leds.led1Toggle();
   }
-  event void RadioReceiver.receivedData(uint8_t *data, uint8_t size){
+  event void RadioReceiver.receivedData(uint8_t *data, uint16_t size) {
     call PCFileSender.sendPartialData(data, size);
   }
-  event void PCFileSender.partialDataSent(){
-    call RadioReceiver.sendPartialDataAckMsg();
+  event void PCFileSender.partialDataSent() {
+    /*call RadioReceiver.sendPartialDataAckMsg();*/
   }
-  event void RadioReceiver.receivedEOF(){
+  event void RadioReceiver.receivedEOF() {
     call PCFileSender.sendEOF();
     //call RadioReceiver.sendEOFAckMsg();
   }
   
-  event void PCFileSender.error(PCFileSenderError error){
+  event void PCFileSender.error(PCFileSenderError error) {
     switch (error) {
       case PFS_ERR_SEND_FAILED:
         call ErrorTimer.startPeriodic(500);
@@ -61,11 +61,11 @@ implementation{
     }
   }
 
-  event void ErrorTimer.fired(){
+  event void ErrorTimer.fired() {
     call Leds.led0Toggle();
   }
 
-  event void RadioReceiver.error(RadioReceiverError error){
+  event void RadioReceiver.error(RadioReceiverError error) {
     call ErrorTimer.startPeriodic(2000);
   }
 }

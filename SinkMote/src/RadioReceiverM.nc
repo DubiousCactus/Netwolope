@@ -17,13 +17,15 @@ module RadioReceiverM {
 
   State _state = IDLE;
   SubState _subState;
-  RadioSenderError _error;
+  RadioReceiverError _error;
   MessageType _msgType;
   BeginFileMsg *_msgBeginFilePayload;
-  uint8_t *_msgPayload;
+  PartialMsg *_msgPayload;
+  NackMsg *nack;
+  uint16_t _msgLength;
   uint16_t _msgChunkSize;
-  uint16_t _recoverSeq = 0;
-  uint16_t _lastSequence = 0;
+  uint32_t _recoverSeq = 0;
+  uint32_t _lastSequence = 0;
   message_t packet;
   BeginFileMsg *beginFileMsg;
 
@@ -53,8 +55,12 @@ module RadioReceiverM {
             changeSubState(SENDING);
             break;
           case SENDING:
-            post sendEOFAckMsg();
-        break;
+            if (call RadioSend.send[AM_MSG_ACK_EOF](AM_BROADCAST_ADDR, &packet, 0) != SUCCESS) {
+              _error = RR_ERR_SEND_FAILED;
+              changeState(ERROR);
+            }
+          break;
+      }
       case RECEIVING_CHUNK:
         if (_msgType != AM_MSG_PARTIAL_DATA) {
           _error = RR_ERR_WRONG_MSG;
@@ -62,23 +68,22 @@ module RadioReceiverM {
           break;
         }
 
-        if (packet->seq != (_lastSequence + 1)) {
+        if (_msgPayload->seq != (_lastSequence + 1)) {
           _recoverSeq = _lastSequence + 1;
           changeSubState(SENDING);
           changeState(RECOVERY);
           break;
         }
 
-        signal RadioReceiver.receivedData((uint8_t *) payload, len);
+        signal RadioReceiver.receivedData((uint8_t *) _msgPayload->data, (uint16_t) _msgLength);
         break;
       case RECOVERY:
         printf("RECOVERY\n");
         switch (_subState) {
           case SENDING:
-            NackMsg nack;
             nack->seq = _recoverSeq;
-            packet->data = nack;
-            if (call RadioSend.send[AM_MSG_RECOVERY](AM_BROADCAST_ADDR, &packet, sizeof(NackMsg)) != SUCCESS) {
+            nack = (NackMsg *) call Packet.getPayload(&packet, sizeof(NackMsg));
+            if (call RadioSend.send[AM_MSG_RECOVERY](AM_BROADCAST_ADDR, &packet, sizeof(uint32_t)) != SUCCESS) {
               _error = RR_ERR_SEND_FAILED;
               changeState(ERROR);
             }
@@ -124,7 +129,7 @@ module RadioReceiverM {
         break;
       case ERROR:
           printf("ERROR\n");
-          signal RadioSender.error(_error);
+          signal RadioReceiver.error(_error);
           changeState(IDLE);
         break;
     }
@@ -161,7 +166,7 @@ module RadioReceiverM {
     }
 
     if (invalid) {
-      signal RadioSender.error(RS_ERR_INVALID_STATE);
+      signal RadioReceiver.error(RR_ERR_INVALID_STATE);
       return;
     }
 
@@ -183,30 +188,12 @@ module RadioReceiverM {
     }
 
     if (invalid) {
-      signal RadioSender.error(RS_ERR_INVALID_STATE);
+      signal RadioReceiver.error(RR_ERR_INVALID_STATE);
       return;
     }
 
     _subState = newState;
     post protocolIteration();
-  }
-
-  task void sendPartialDataNACKMsg() {
-    if (call RadioSend.send[AM_MSG_NACK_PARTIAL_DATA](AM_BROADCAST_ADDR, &packet, 0) != SUCCESS) {
-      post sendPartialDataAckMsg();
-    }
-  }
-
-  task void sendEOFAckMsg() {
-    if (call RadioSend.send[AM_MSG_ACK_EOF](AM_BROADCAST_ADDR, &packet, 0) != SUCCESS) {
-      post sendEOFAckMsg();
-    }
-  }
-
-  task void sendBeginFileAckMsg() {
-    if (call RadioSend.send[AM_MSG_ACK_BEGIN_FILE](AM_BROADCAST_ADDR, &packet, 0) != SUCCESS) {
-      post sendBeginFileAckMsg();
-    }
   }
 
   /* TODO: Move the call to RadioControl.start() to somewhere when we NEED the radio ON
@@ -236,12 +223,14 @@ module RadioReceiverM {
     atomic {
       _msgType = msg_type;
 
-      if (msg_type == AM_MSG_BEGIN_FILE)
+      if (msg_type == AM_MSG_BEGIN_FILE) {
         _msgBeginFilePayload = (BeginFileMsg *) payload;
-      else if (msg_type == AM_MSG_PARTIAL_DATA)
-        _msgPayload = (uint8_t *) payload;
-      else if (msg_type == AM_MSG_END_OF_CHUNK)
+      } else if (msg_type == AM_MSG_PARTIAL_DATA) {
+        _msgPayload = (PartialMsg *) payload;
+        _msgLength = len;
+      } else if (msg_type == AM_MSG_END_OF_CHUNK) {
         _msgChunkSize = (uint16_t) payload;
+      }
     }
 
     return msg;

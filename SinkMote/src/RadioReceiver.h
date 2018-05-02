@@ -2,8 +2,9 @@
 #define RADIO_RECEIVER_H
 
 typedef enum {
-  RR_ERR_SEND_FAILED = 1,
-  RR_ERR_WRONG_MSG   = 2
+  RR_ERR_SEND_FAILED   = 1,
+  RR_ERR_WRONG_MSG     = 2,
+  RR_ERR_INVALID_STATE = 3
 } RadioReceiverError;
 
 typedef enum {
@@ -44,5 +45,10 @@ typedef nx_struct {
 typedef nx_struct {
   nx_uint32_t seq;
 } NackMsg;
+
+typedef nx_struct {
+  nx_uint8_t data;
+  nx_uint32_t seq;
+} PartialMsg;
 
 #endif /* RADIO_RECEIVER_H */

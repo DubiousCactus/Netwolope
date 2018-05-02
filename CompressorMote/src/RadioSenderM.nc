@@ -1,4 +1,3 @@
-#include "RadioSender.h" 
 #include "printf.h"
 
 module RadioSenderM {
