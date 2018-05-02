@@ -35,7 +35,7 @@ typedef enum {
   ERROR
 } State;
 
-typedef enum {,
+typedef enum {
   WAITING,
   SENDING,
   RECEIVING

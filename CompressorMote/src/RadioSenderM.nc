@@ -59,7 +59,7 @@ module RadioSenderM {
                 printf("\tReceived AM_MSG_ACK_BEGIN_FILE\n");
                 _msgType = 0;
                 printf("\tChanging state to SENDING_CHUNK\n");
-                changeSubState(SENDING);
+                changeSubState(WAITING); //Wait for compression
                 changeState(SENDING_CHUNK);
                 break;
               }
@@ -76,16 +76,18 @@ module RadioSenderM {
 
           switch (_subState) {
             case WAITING:
+              printf("  WAITING\n");
               printf("\tAvailable bytes: %d\n", availableBytes);
               if (availableBytes > 0) {
                 changeSubState(SENDING);
                 break;
               } else {
-                printf("\tNo more bytes available. Signaling ((done))\n");
-                signal RadioSender.sendDone();
+                /*printf("\tNo more bytes available. Signaling ((done))\n");*/
+                /*signal RadioSender.sendDone();*/
               }
               break;
             case SENDING:
+              printf("  SENDING\n");
               if (availableBytes < 0) {
                 changeSubState(WAITING);
                 break;
@@ -110,6 +112,7 @@ module RadioSenderM {
               }
               break;
             case RECEIVING:
+              /* Not used here */
               break;
           }
           break;
@@ -225,8 +228,11 @@ module RadioSenderM {
   void changeSubState(SubState newState) {
     bool invalid = FALSE;
     switch (newState) {
+      case WAITING:
+        invalid = (_state != BEGIN_TRANSFER && _subState != RECEIVING);
+        break;
       case SENDING:
-        invalid = (_state != BEGIN_TRANSFER && _state != RECOVERY && _state != END_OF_CHUNK && _state != END_OF_FILE && _subState != RECEIVING);
+        invalid = (_state != READY &&_state != BEGIN_TRANSFER && _state != RECOVERY && _state != END_OF_CHUNK && _state != END_OF_FILE && _subState != RECEIVING && _subState != WAITING);
         break;
       case RECEIVING:
         invalid = (_state != BEGIN_TRANSFER && _state != RECOVERY && _state != END_OF_CHUNK && _state != END_OF_FILE && _subState != SENDING);
@@ -255,6 +261,7 @@ module RadioSenderM {
     beginFileMsg->uncompressedSize = uncompressedSize;
     beginFileMsg->compressionType = compressionType;
 
+    changeSubState(SENDING);
     changeState(BEGIN_TRANSFER);
   }
 
