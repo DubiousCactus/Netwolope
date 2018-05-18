@@ -1,0 +1,71 @@
+[*] Listening for incoming files...
+
+[*] Received begin file (65536 bytes, No compression)...
+  [##################################################] 100%
+ [*] Data written to file: received_files/file-2018-05-02-08-25-17.part
+Transferred file size: 65536. Original size: 65536: Ratio: 1.0
+Number of packets: 1024
+Seconds: 44
+
+
+
+
+
+
+
+
+[*] Listening for incoming files...
+
+[*] Received begin file (65536 bytes, Netwolope)...
+  [##################################################] 100%
+ [*] Data written to file: received_files/file-2018-05-02-08-00-26.part
+Transferred file size: 32768. Original size: 65536: Ratio: 2.0
+Number of packets: 512
+Seconds: 24
+
+
+
+
+
+
+[*] Listening for incoming files...
+
+[*] Received begin file (65536 bytes, Netwolope2)...
+  [##################################################] 100%
+ [*] Data written to file: received_files/file-2018-05-02-07-48-23.part
+Transferred file size: 40960. Original size: 65536: Ratio: 1.6
+Number of packets: 640
+Seconds: 39
+
+
+
+
+
+
+[*] Listening for incoming files...
+
+[*] Received begin file (65536 bytes, Run-length)...
+  [##################################################] 100%
+ [*] Data written to file: received_files/file-2018-05-02-08-12-03.part
+Transferred file size: 122678. Original size: 65536: Ratio: 0.534211513067
+Number of packets: 1946
+Seconds: 78
+Decompressing run-length encoded file...
+
+
+
+
+
+
+[*] Listening for incoming files...
+
+[*] Received begin file (65536 bytes, Block Truncation)...
+  [##################################################] 100%
+ [*] Data written to file: received_files/file-2018-05-02-08-17-40.part
+Transferred file size: 16384. Original size: 65536: Ratio: 4.0
+Number of packets: 256
+Seconds: 195
+
+
+
+
