@@ -1,4 +1,5 @@
 #include "FlashStorage.h"
+#include "printf.h"
 
 module FlashStorageM {
   provides {
@@ -71,9 +72,11 @@ implementation {
   
   task void readTask() {
     static int posted;
-    uint16_t readSize, bytesFree;
-    
+    uint16_t readSize;
+    uint16_t bytesFree;
+
     bytesFree = call WriteBuffer.getFreeSpace();
+    
     if (bytesFree > BUFFER_CAPACITY) {
       readSize = BUFFER_CAPACITY;
     } else {
@@ -109,6 +112,7 @@ implementation {
   }
   
   command void FlashReader.readNextChunk(){
+    printf("FR.readNextChunk: %u\n", call WriteBuffer.getFreeSpace());
     if (_index < _endIndex) {
       post readTask();
       return;
@@ -143,6 +147,7 @@ implementation {
     }
     
     _index += len;
+    
     call WriteBuffer.writeChunk(_buffer, len);
     if (call WriteBuffer.getFreeSpace() > 0 && _index < _endIndex) {
       post readTask();

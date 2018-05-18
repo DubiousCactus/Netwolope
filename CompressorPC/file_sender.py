@@ -114,11 +114,13 @@ class MoteFileSender:
       print('File %s is not a PGM file.' % self.file_path)
       exit(1)
     
-    # Second line is the comment line, just ignore it
-    f.readline()
+    # Ignore comment lines
+    line = f.readline()
+    while line[0] == '#':
+      line = f.readline()
 
-    # Third line gives us image dimensions
-    (width, height) = [int(i) for i in f.readline().split()]
+    # Line after comment lines gives us image dimensions
+    (width, height) = [int(i) for i in line.split()]
     if width != height:
       print('Image dimensions %sx%s must be square.' % (width, height))
       exit(1)

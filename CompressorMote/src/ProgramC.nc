@@ -2,9 +2,6 @@
 
 #include "printf.h"
 #include "StorageVolumes.h"
-//#include "printf.h"
-
-#define COMPRESSION_RUN_LENGTH
 
 configuration ProgramC {
 }
@@ -24,9 +21,12 @@ implementation {
   components RadioSenderM;
   
   components ErrorIndicatorM;
-  components new CircularBufferM(1024) as UncompressedBuffer;
-  components new CircularBufferM(2048) as CompressedBuffer;
+  components new CircularBufferM(1025) as UncompressedBuffer;
+  components new CircularBufferM(2049) as CompressedBuffer;
   components FlashStorageM;
+  
+  components UserButtonC;
+  
 
   PCFileReceiverM.SerialControl -> Serial;
   PCFileReceiverM.SerialPacket -> Serial;
@@ -52,6 +52,8 @@ implementation {
   
   ProgramM.Boot -> MainC;
   ProgramM.Leds -> LedsC;
+  ProgramM.ButtonNotify -> UserButtonC;
+  
   ProgramM.RadioSender -> RadioSenderM;
   ProgramM.PCFileReceiver -> PCFileReceiverM;
   ProgramM.ErrorIndicator -> ErrorIndicatorM;
@@ -60,6 +62,8 @@ implementation {
   ProgramM.FlashError -> FlashStorageM;
   ProgramM.UncompressedBufferReader -> UncompressedBuffer;
   ProgramM.UncompressedBufferWriter -> UncompressedBuffer;
+  ProgramM.UncompressedBufferError -> UncompressedBuffer.Error;
+  ProgramM.CompressedBufferError -> CompressedBuffer.Error;
   
   
   #if defined(COMPRESSION_NONE)
@@ -76,12 +80,41 @@ implementation {
   RunLengthEncoderM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> RunLengthEncoderM;
 
+  #elif defined(COMPRESSION_BLOCK_TRUNC)
+
+  components BlockTruncationM;
+  BlockTruncationM.InBuffer -> UncompressedBuffer;
+  BlockTruncationM.OutBuffer -> CompressedBuffer;
+  ProgramM.Compressor -> BlockTruncationM;
+
   #elif defined(COMPRESSION_ROSS)
 
   components RossCompressionM;
   RossCompressionM.InBuffer -> UncompressedBuffer;
   RossCompressionM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> RossCompressionM;
+
+  #elif defined(COMPRESSION_BLOCK)
+
+  components BlockCompressionM;
+  BlockCompressionM.InBuffer -> UncompressedBuffer;
+  BlockCompressionM.BlockReader -> UncompressedBuffer;
+  BlockCompressionM.OutBuffer -> CompressedBuffer;
+  ProgramM.Compressor -> BlockCompressionM;
+
+  #elif defined(COMPRESSION_NETWOLOPE)
+
+  components NetwolopeAlgorithmM;
+  NetwolopeAlgorithmM.InBuffer -> UncompressedBuffer;
+  NetwolopeAlgorithmM.OutBuffer -> CompressedBuffer;
+  ProgramM.Compressor -> NetwolopeAlgorithmM;
+
+  #elif defined(COMPRESSION_NETWOLOPE2)
+
+  components Netwolope2M;
+  Netwolope2M.InBuffer -> UncompressedBuffer;
+  Netwolope2M.OutBuffer -> CompressedBuffer;
+  ProgramM.Compressor -> Netwolope2M;
 
   #endif
 }

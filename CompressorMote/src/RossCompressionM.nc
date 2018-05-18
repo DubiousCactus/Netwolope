@@ -171,3 +171,4 @@ module RossCompressionM {
 		return COMPRESSION_TYPE_ROSS;
 	}
 }
+
