@@ -1,5 +1,3 @@
-#include "RadioHeader.h"
-
 configuration SinkMoteC{
 }
 implementation{

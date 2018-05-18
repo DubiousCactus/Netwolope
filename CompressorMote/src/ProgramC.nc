@@ -8,6 +8,7 @@ configuration ProgramC {
 implementation {
   components MainC;
   components PrintfC;
+  components SerialStartC;
   components LedsC;
   components ProgramM;
   components SerialActiveMessageC as Serial;
@@ -65,39 +66,35 @@ implementation {
   ProgramM.CompressedBufferError -> CompressedBuffer.Error;
   
   
-  #ifdef COMPRESSION_NONE
+  #if defined(COMPRESSION_NONE)
 
   components NoCompressionM;
   NoCompressionM.InBuffer -> UncompressedBuffer;
   NoCompressionM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> NoCompressionM;
 
-  #endif
-  #ifdef COMPRESSION_RUN_LENGTH
+  #elif defined(COMPRESSION_RUN_LENGTH)
 
   components RunLengthEncoderM;
   RunLengthEncoderM.InBuffer -> UncompressedBuffer;
   RunLengthEncoderM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> RunLengthEncoderM;
 
-  #endif
-  #ifdef COMPRESSION_BLOCK_TRUNC
+  #elif defined(COMPRESSION_BLOCK_TRUNC)
 
   components BlockTruncationM;
   BlockTruncationM.InBuffer -> UncompressedBuffer;
   BlockTruncationM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> BlockTruncationM;
 
-  #endif
-  #if COMPRESSION_ROSS
+  #elif defined(COMPRESSION_ROSS)
 
   components RossCompressionM;
   RossCompressionM.InBuffer -> UncompressedBuffer;
   RossCompressionM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> RossCompressionM;
 
-  #endif
-  #if COMPRESSION_BLOCK
+  #elif defined(COMPRESSION_BLOCK)
 
   components BlockCompressionM;
   BlockCompressionM.InBuffer -> UncompressedBuffer;
@@ -105,16 +102,14 @@ implementation {
   BlockCompressionM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> BlockCompressionM;
 
-  #endif
-  #ifdef COMPRESSION_NETWOLOPE
+  #elif defined(COMPRESSION_NETWOLOPE)
 
   components NetwolopeAlgorithmM;
   NetwolopeAlgorithmM.InBuffer -> UncompressedBuffer;
   NetwolopeAlgorithmM.OutBuffer -> CompressedBuffer;
   ProgramM.Compressor -> NetwolopeAlgorithmM;
 
-  #endif
-  #ifdef COMPRESSION_NETWOLOPE2
+  #elif defined(COMPRESSION_NETWOLOPE2)
 
   components Netwolope2M;
   Netwolope2M.InBuffer -> UncompressedBuffer;

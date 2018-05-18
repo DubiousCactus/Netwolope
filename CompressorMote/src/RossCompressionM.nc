@@ -28,7 +28,7 @@ module RossCompressionM {
 	command void OnlineCompressionAlgorithm.compress(bool last) {
 	
 		uint8_t data[1024]; //Data to compress
-		uint16_t length; //Number of bytes to compress
+		uint16_t length = call InBuffer.available(); //Number of bytes to compress
 
 		uint8_t outbuff[BUFF_LEN];	
 		uint8_t *in_idx = data;
@@ -44,11 +44,10 @@ module RossCompressionM {
 		uint16_t ctrl_cnt = 0;
 		uint8_t *out_idx = outbuff + sizeof(uint16_t);
 		uint8_t *outbuff_end = outbuff + (length - 48);
-        
+
 		while (call InBuffer.available() > 0) {
 			/* Read from the buffer */
-            length = call InBuffer.available();
-
+			length = call InBuffer.available();
 			call InBuffer.readChunk(data, length);
 
 			/* skip the compression for a small buffer */
@@ -74,7 +73,7 @@ module RossCompressionM {
 					out_idx += 2;
 
 					if (out_idx > outbuff_end) {
-						// TODO: This should never happen.
+						call OutBuffer.writeChunk(data, length);
 						signal OnlineCompressionAlgorithm.error(OCA_ERR_BUFFER_OVERFLOW);
 						return;
 					}
@@ -156,16 +155,14 @@ module RossCompressionM {
 			*ctrl_idx = ctrl_bits;
 
 			/* Write compressed bytes to circular buffer */
-			length = out_idx - outbuff;
-			
 			if (call OutBuffer.getFreeSpace() < length) {
-			  // TODO: Fix this
-			  signal OnlineCompressionAlgorithm.error(OCA_ERR_OUT_OF_MEMORY);
-			  return;
+				/* TODO: Implement retry timer */
+				signal OnlineCompressionAlgorithm.error(OCA_ERR_OUT_OF_MEMORY);
+				return;
 			}
-			
-			//while (call OutBuffer.getFreeSpace() < length) {} //Wait until enough space is available in the buffer
-            call OutBuffer.writeChunk(outbuff, length);
+
+			length = out_idx - outbuff;
+			call OutBuffer.writeChunk(outbuff, length);
 			signal OnlineCompressionAlgorithm.compressed();
 		}
 	}
@@ -174,3 +171,4 @@ module RossCompressionM {
 		return COMPRESSION_TYPE_ROSS;
 	}
 }
+
