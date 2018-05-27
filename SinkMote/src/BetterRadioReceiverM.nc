@@ -1,8 +1,5 @@
-#include "Timer.h"
-#include "printf.h"
-
-module RadioReceiverM {
-  provides interface RadioReceiver;
+module BetterRadioReceiver {
+  provides interface BetterRadioReceiver;
   uses interface Packet;
   uses interface AMPacket;
   uses interface AMSend as RadioSend[am_id_t msg_type];
@@ -32,17 +29,14 @@ module RadioReceiverM {
   task void protocolIteration() {
     switch (_state) {
       case IDLE:
-        printf("IDLE\n");
         call RadioControl.stop();
         break;
       case READY:
-        printf("READY\n");
-        signal RadioReceiver.initDone();
+        signal BetterRadioReceiver.initDone();
         changeSubState(RECEIVING);
         changeState(BEGIN_TRANSFER);
         break;
       case BEGIN_TRANSFER:
-        printf("BEGIN_TRANSFER\n");
         switch (_subState) {
           case RECEIVING:
             if (_msgType != AM_MSG_BEGIN_FILE) {
@@ -51,7 +45,7 @@ module RadioReceiverM {
               break;
             }
 
-            signal RadioReceiver.receivedFileBegin(_msgBeginFilePayload->uncompressedSize, _msgBeginFilePayload->compressionType);
+            signal BetterRadioReceiver.receivedFileBegin(_msgBeginFilePayload->uncompressedSize, _msgBeginFilePayload->compressionType);
             changeSubState(SENDING);
             break;
           case SENDING:
@@ -75,10 +69,9 @@ module RadioReceiverM {
           break;
         }
 
-        signal RadioReceiver.receivedData((uint8_t *) _msgPayload->data, (uint16_t) _msgLength);
+        signal BetterRadioReceiver.receivedData((uint8_t *) _msgPayload->data, (uint16_t) _msgLength);
         break;
       case RECOVERY:
-        printf("RECOVERY\n");
         switch (_subState) {
           case SENDING:
             nack->seq = _recoverSeq;
@@ -103,7 +96,6 @@ module RadioReceiverM {
         }
         break;
       case END_OF_CHUNK:
-        printf("END_OF_CHUNK\n");
         switch (_subState) {
           case SENDING:
             break;
@@ -112,7 +104,6 @@ module RadioReceiverM {
         }
         break;
       case END_OF_FILE:
-        printf("END_OF_FILE\n");
         switch (_subState) {
           case SENDING:
             break;
@@ -123,17 +114,15 @@ module RadioReceiverM {
               break;
             }
 
-            signal RadioReceiver.receivedEOF();
+            signal BetterRadioReceiver.receivedEOF();
             break;
         }
         break;
       case ERROR:
-          printf("ERROR\n");
-          signal RadioReceiver.error(_error);
+          signal BetterRadioReceiver.error(_error);
           changeState(IDLE);
         break;
     }
-    printfflush();
   }
 
   /* Switch to new state and run next protocol iteration if the current state allows it */
@@ -166,7 +155,7 @@ module RadioReceiverM {
     }
 
     if (invalid) {
-      signal RadioReceiver.error(RR_ERR_INVALID_STATE);
+      signal BetterRadioReceiver.error(RR_ERR_INVALID_STATE);
       return;
     }
 
@@ -188,7 +177,7 @@ module RadioReceiverM {
     }
 
     if (invalid) {
-      signal RadioReceiver.error(RR_ERR_INVALID_STATE);
+      signal BetterRadioReceiver.error(RR_ERR_INVALID_STATE);
       return;
     }
 
@@ -200,7 +189,7 @@ module RadioReceiverM {
    * and then remove the READY state. Do the same for RadioControl.stop(). Use the events
    * to switch states.
    */
-  command void RadioReceiver.init() {
+  command void BetterRadioReceiver.init() {
     /* TODO: Move this to the IDLE State !!*/
     if (_state == IDLE)
       call RadioControl.start();

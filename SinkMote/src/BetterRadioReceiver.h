@@ -1,5 +1,5 @@
-#ifndef RADIO_RECEIVER_H
-#define RADIO_RECEIVER_H
+#ifndef BETTER_RADIO_RECEIVER_H
+#define BETTER_RADIO_RECEIVER_H
 
 typedef enum {
   RR_ERR_SEND_FAILED   = 1,
@@ -51,4 +51,4 @@ typedef nx_struct {
   nx_uint32_t seq;
 } PartialMsg;
 
-#endif /* RADIO_RECEIVER_H */
+#endif /* BETTER_RADIO_RECEIVER_H */
