@@ -31,18 +31,19 @@ implementation{
   }
 
   event void PCFileSender.beginFileSent() {
-    /*call RadioReceiver.sendBeginFileAckMsg();*/
-    call Leds.led1Toggle();
+    call RadioReceiver.sendBeginFileAckMsg();
   }
-  event void RadioReceiver.receivedData(uint8_t *data, uint16_t size) {
+
+  event void RadioReceiver.receivedData(uint8_t *data, uint8_t size) {
     call PCFileSender.sendPartialData(data, size);
   }
+
   event void PCFileSender.partialDataSent() {
-    /*call RadioReceiver.sendPartialDataAckMsg();*/
+    call RadioReceiver.sendPartialDataAckMsg();
   }
+
   event void RadioReceiver.receivedEOF() {
     call PCFileSender.sendEOF();
-    //call RadioReceiver.sendEOFAckMsg();
   }
   
   event void PCFileSender.error(PCFileSenderError error) {

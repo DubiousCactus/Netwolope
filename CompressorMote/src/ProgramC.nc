@@ -8,7 +8,6 @@ configuration ProgramC {
 implementation {
   components MainC;
   components PrintfC;
-  components SerialStartC;
   components LedsC;
   components ProgramM;
   components SerialActiveMessageC as Serial;

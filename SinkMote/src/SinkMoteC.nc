@@ -7,7 +7,6 @@ configuration SinkMoteC{
 implementation{
   components MainC;
   components PrintfC;
-  components SerialStartC;
   components LedsC;
   components ActiveMessageC as Radio;
   
