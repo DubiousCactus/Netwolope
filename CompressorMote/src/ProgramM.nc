@@ -20,110 +20,99 @@ module ProgramM {
 }
 implementation {
   uint16_t _imageWidth;
-  uint16_t _sendDoneCounter = 0;
   
-  event void ButtonNotify.notify(button_state_t state){
-    if ( state == BUTTON_PRESSED ) {
-      //call Leds.set(255);
-    } else if (state == BUTTON_RELEASED) {
-      //call Leds.set(0);
+  event void ButtonNotify.notify(button_state_t state) {
+    if (state == BUTTON_RELEASED) {
       call FlashReader.prepareRead();
     }
   }
   
-  event void Boot.booted(){
+  event void Boot.booted() {
     call ButtonNotify.enable();
     call PCFileReceiver.init();
   }
   
-  event void PCFileReceiver.initDone(){ 
+  event void PCFileReceiver.initDone() { 
      //call Leds.led1On();
   }
   
-  event void PCFileReceiver.fileBegin(uint16_t width){
+  event void PCFileReceiver.fileBegin(uint16_t width) {
     call FlashWriter.prepareWrite(width);
   }
     
-  event void FlashWriter.readyToWrite(){
-    //call Leds.led1Toggle();
+  event void FlashWriter.readyToWrite() {
     call PCFileReceiver.sendFileBeginAck();
   }
   
-  event void PCFileReceiver.receivedData(){
+  event void PCFileReceiver.receivedData() {
     call FlashWriter.writeNextChunk();
   }
 
-  event void FlashWriter.chunkWritten(){
-    //call Leds.led1Toggle();
+  event void FlashWriter.chunkWritten() {
     call PCFileReceiver.receiveMore();
   }
   
-  event void PCFileReceiver.fileEnd(){
+  event void PCFileReceiver.fileEnd() {
     call FlashReader.prepareRead();
   }
   
-  event void FlashReader.readyToRead(uint16_t width){
+  event void FlashReader.readyToRead(uint16_t width) {
     _imageWidth = width;
     call RadioSender.init();
   }
   
-  event void RadioSender.initDone(){ 
+  event void RadioSender.initDone() { 
     call RadioSender.sendFileBegin(_imageWidth, call Compressor.getCompressionType());
   }
   
-  event void RadioSender.fileBeginAcknowledged(){ 
+  event void RadioSender.fileBeginAcknowledged() { 
     call Compressor.fileBegin(_imageWidth);
     call FlashReader.readNextChunk();
-    //call Leds.led1Toggle();
   }
   
-
-  event void FlashReader.chunkRead(){
+  event void FlashReader.chunkRead() {
     bool isFinished = call FlashReader.isFinished();
     call Compressor.compress(isFinished);
   }
   
-  event void Compressor.compressed(){
+  event void Compressor.compressed() {
     call RadioSender.sendPartialData();
   }
 
-  event void RadioSender.sendDone(){
+  event void RadioSender.sendDone() {
     if (call RadioSender.canSend()) {
-      _sendDoneCounter += 1;
       call RadioSender.sendPartialData();
       
     } else if (call FlashReader.isFinished()) {
       call RadioSender.sendEOF();
-      //call Leds.led2On();
       
     } else {
-      _sendDoneCounter = 0;
       call FlashReader.readNextChunk();
-      //call Leds.led1Toggle();
     }
   }  
   
-  event void PCFileReceiver.error(PCFileReceiverError error){
+  event void PCFileReceiver.error(PCFileReceiverError error) {
     call ErrorIndicator.blinkRed(error);
   }
 
-  event void RadioSender.error(RadioSenderError error){
+  event void RadioSender.error(RadioSenderError error) {
     call ErrorIndicator.blinkRed(error);
   }
 
-  event void FlashError.onError(error_t error){
+  event void FlashError.onError(error_t error) {
     call ErrorIndicator.blinkRed(2);
   }
 
-  event void Compressor.error(CompressionError error){
+  event void Compressor.error(CompressionError error) {
     call ErrorIndicator.blinkRed(3);
   }
 
-  event void UncompressedBufferError.error(uint8_t code){
+  event void UncompressedBufferError.error(uint8_t code) {
     call ErrorIndicator.blinkRed(code);
   }
 
-  event void CompressedBufferError.error(uint8_t code){
+  event void CompressedBufferError.error(uint8_t code) {
     call ErrorIndicator.blinkRed(code);
   }
 }
+
