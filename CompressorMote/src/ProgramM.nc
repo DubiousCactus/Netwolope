@@ -1,3 +1,5 @@
+#include <UserButton.h>
+
 module ProgramM {
   uses {
     interface Boot;
@@ -11,18 +13,27 @@ module ProgramM {
     interface FlashError;
     interface CircularBufferReader as UncompressedBufferReader;
     interface CircularBufferWriter as UncompressedBufferWriter;
+    interface Notify<button_state_t> as ButtonNotify;
+    interface CircularBufferError as UncompressedBufferError;
+    interface CircularBufferError as CompressedBufferError;
   }
 }
 implementation {
   uint16_t _imageWidth;
- 
+  
+  event void ButtonNotify.notify(button_state_t state) {
+    if (state == BUTTON_RELEASED) {
+      call FlashReader.prepareRead();
+    }
+  }
+  
   event void Boot.booted() {
+    call ButtonNotify.enable();
     call PCFileReceiver.init();
   }
-
+  
   event void PCFileReceiver.initDone() { 
-     call Leds.set(0);
-     call Leds.led1On();
+     //call Leds.led1On();
   }
   
   event void PCFileReceiver.fileBegin(uint16_t width) {
@@ -30,7 +41,6 @@ implementation {
   }
     
   event void FlashWriter.readyToWrite() {
-    call Leds.led1Toggle();
     call PCFileReceiver.sendFileBeginAck();
   }
   
@@ -39,7 +49,6 @@ implementation {
   }
 
   event void FlashWriter.chunkWritten() {
-    call Leds.led1Toggle();
     call PCFileReceiver.receiveMore();
   }
   
@@ -60,9 +69,10 @@ implementation {
     call Compressor.fileBegin(_imageWidth);
     call FlashReader.readNextChunk();
   }
-
+  
   event void FlashReader.chunkRead() {
-    call Compressor.compress(call FlashReader.isFinished());
+    bool isFinished = call FlashReader.isFinished();
+    call Compressor.compress(isFinished);
   }
   
   event void Compressor.compressed() {
@@ -75,7 +85,6 @@ implementation {
       
     } else if (call FlashReader.isFinished()) {
       call RadioSender.sendEOF();
-      call Leds.led2On();
       
     } else {
       call FlashReader.readNextChunk();
@@ -97,4 +106,13 @@ implementation {
   event void Compressor.error(CompressionError error) {
     call ErrorIndicator.blinkRed(3);
   }
+
+  event void UncompressedBufferError.error(uint8_t code) {
+    call ErrorIndicator.blinkRed(code);
+  }
+
+  event void CompressedBufferError.error(uint8_t code) {
+    call ErrorIndicator.blinkRed(code);
+  }
 }
+
